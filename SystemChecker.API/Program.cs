@@ -1,12 +1,17 @@
 using SystemChecker.API.Models;
 using SystemChecker.API.Services;
+using Microsoft.EntityFrameworkCore;
+using SystemChecker.API.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddSingleton<ISystemCheckStore, InMemorySystemCheckStore>();
+builder.Services.AddDbContext<ApiDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
+builder.Services.AddScoped<ISystemCheckHistoryService, SystemCheckHistoryService>();
 
 // Adiciona CORS
 builder.Services.AddCors(options =>
@@ -35,25 +40,72 @@ if (app.Environment.IsDevelopment())
 app.UseCors("AllowAll");
 
 // Endpoints
-app.MapPost("/api/systemcheck", async (SystemCheckData check, ISystemCheckStore store) =>
+app.MapPost("/api/systemcheck", async (
+    SystemCheckData check,
+    string apiKey,
+    ISystemCheckHistoryService historyService) =>
 {
-    await store.SaveCheckAsync(check);
-    return Results.Ok();
+    try
+    {
+        var history = await historyService.SaveCheckAsync(apiKey, check);
+        return Results.Ok(history);
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
 })
 .WithName("SaveSystemCheck")
-.WithOpenApi()
-.AllowAnonymous(); // Permite acesso anônimo
+.WithOpenApi();
 
-app.MapGet("/api/systemcheck/latest", async (ISystemCheckStore store) =>
+app.MapGet("/api/systemcheck/latest", async (
+    string apiKey,
+    ISystemCheckHistoryService historyService) =>
 {
-    var latestCheck = await store.GetLatestCheckAsync();
-    if (latestCheck == null)
-        return Results.NotFound();
-        
-    return Results.Ok(latestCheck);
+    try
+    {
+        var latestCheck = await historyService.GetLatestCheckAsync(apiKey);
+        if (latestCheck == null)
+            return Results.NotFound();
+            
+        return Results.Ok(latestCheck);
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
 })
 .WithName("GetLatestSystemCheck")
-.WithOpenApi()
-.AllowAnonymous(); // Permite acesso anônimo
+.WithOpenApi();
+
+app.MapGet("/api/systemcheck/history", async (
+    string apiKey,
+    DateTime? from,
+    DateTime? to,
+    ISystemCheckHistoryService historyService) =>
+{
+    try
+    {
+        var history = await historyService.GetCheckHistoryAsync(apiKey, from, to);
+        return Results.Ok(history);
+    }
+    catch (UnauthorizedAccessException)
+    {
+        return Results.Unauthorized();
+    }
+})
+.WithName("GetSystemCheckHistory")
+.WithOpenApi();
+
+app.MapPost("/api/keys", async (
+    IApiKeyService keyService,
+    string machineName,
+    string? description) =>
+{
+    var apiKey = await keyService.GenerateApiKeyAsync(machineName, description);
+    return Results.Ok(new { apiKey.Key, MachineName = apiKey.Machine.Name });
+})
+.WithName("GenerateApiKey")
+.WithOpenApi();
 
 app.Run(); 
