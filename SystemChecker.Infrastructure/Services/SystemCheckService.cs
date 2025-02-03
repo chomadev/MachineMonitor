@@ -1,61 +1,78 @@
 using SystemChecker.Core.Interfaces;
 using SystemChecker.Core.Models;
+using Microsoft.Extensions.Logging;
 
 namespace SystemChecker.Infrastructure.Services;
 
 public class SystemCheckService : ISystemCheckService
 {
+    private readonly ILogger<SystemCheckService> _logger;
     private readonly IServiceChecker _serviceChecker;
     private readonly INetworkChecker _networkChecker;
     private readonly IDiskChecker _diskChecker;
     private readonly IResourceChecker _resourceChecker;
     private readonly IConfigurationService _configService;
-    private readonly ITcpPortChecker _portChecker;
+    private readonly ITcpPortService _tcpPortService;
     private readonly IFolderMonitor _folderMonitor;
 
     public SystemCheckService(
+        ILogger<SystemCheckService> logger,
         IServiceChecker serviceChecker,
         INetworkChecker networkChecker,
         IDiskChecker diskChecker,
         IResourceChecker resourceChecker,
         IConfigurationService configService,
-        ITcpPortChecker portChecker,
+        ITcpPortService tcpPortService,
         IFolderMonitor folderMonitor)
     {
+        _logger = logger;
         _serviceChecker = serviceChecker;
         _networkChecker = networkChecker;
         _diskChecker = diskChecker;
         _resourceChecker = resourceChecker;
         _configService = configService;
-        _portChecker = portChecker;
+        _tcpPortService = tcpPortService;
         _folderMonitor = folderMonitor;
     }
 
     public async Task<SystemCheck> PerformSystemCheckAsync()
     {
-        var services = await _serviceChecker.CheckServicesAsync(_configService.GetMonitoredServices());
-        var network = await _networkChecker.CheckNetworkAsync();
-        var disk = await _diskChecker.CheckDisksAsync();
-        var resourceCpu = await _resourceChecker.CheckCpuAsync();
-        var resourceMemory = await _resourceChecker.CheckMemoryAsync();
-
-        return new SystemCheck
+        var systemCheck = new SystemCheck
         {
-            Id = Guid.NewGuid(),
-            Timestamp = DateTime.Now,
-            Services = services,
-            Network = network,
-            Disks = disk,
-            Cpu = resourceCpu,
-            Memory = resourceMemory,
-            Ports = await _portChecker.CheckPortsAsync(),
-            FolderChanges = _folderMonitor.GetChanges()
+            Timestamp = DateTime.Now
         };
+
+        // Verifica serviços
+        _logger.LogInformation("Iniciando verificação de serviços...");
+        systemCheck.Services = await _serviceChecker.CheckServicesAsync(_configService.GetMonitoredServices());
+        _logger.LogInformation("Verificação de serviços concluída");
+
+        // Verifica recursos (CPU/Memória)
+        _logger.LogInformation("Iniciando verificação de recursos (CPU/Memória)...");
+        systemCheck.Cpu = await _resourceChecker.CheckCpuAsync();
+        systemCheck.Memory = await _resourceChecker.CheckMemoryAsync();
+        _logger.LogInformation("Verificação de recursos concluída");
+
+        // Verifica rede
+        _logger.LogInformation("Iniciando verificação de rede...");
+        systemCheck.Network = await _networkChecker.CheckNetworkAsync();
+        _logger.LogInformation("Verificação de rede concluída");
+
+        // Verifica portas TCP
+        _logger.LogInformation("Iniciando verificação de portas TCP...");
+        var ports = _tcpPortService.GetConfiguredPorts();
+        systemCheck.Ports = (await _tcpPortService.CheckPortsAsync(ports)).ToArray();
+        _logger.LogInformation("Verificação de portas TCP concluída");
+
+        return systemCheck;
     }
 
     public async Task<bool> PushCheckResultAsync(SystemCheck check)
     {
+        _logger.LogInformation("Iniciando envio dos resultados da verificação...");
         // Implementação do envio para API será adicionada posteriormente
+        await Task.CompletedTask;
+        _logger.LogInformation("Envio dos resultados concluído");
         return true;
     }
 }

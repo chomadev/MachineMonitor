@@ -1,0 +1,47 @@
+<UserControl x:Class="SystemChecker.WPF.Views.Controls.LogsTabControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock Text="Filtrar por nível:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <ComboBox ItemsSource="{Binding LogLevels}"
+                      SelectedItem="{Binding SelectedLogLevel}"
+                      Width="120"/>
+            <Button Content="Limpar Logs"
+                    Command="{Binding ClearLogsCommand}"
+                    Margin="10,0,0,0"
+                    Padding="10,5"/>
+        </StackPanel>
+
+        <ListView Grid.Row="1" 
+                  ItemsSource="{Binding FilteredLogs}"
+                  VirtualizingPanel.IsVirtualizing="True"
+                  VirtualizingPanel.VirtualizationMode="Recycling">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:dd/MM/yyyy HH:mm:ss}'}"
+                                 Margin="0,0,10,0"/>
+                        <TextBlock Grid.Column="1" 
+                                 Text="{Binding Level}"
+                                 Margin="0,0,10,0"
+                                 Foreground="{Binding Level, Converter={StaticResource LogLevelColorConverter}}"/>
+                        <TextBlock Grid.Column="2" 
+                                 Text="{Binding Message}"
+                                 TextWrapping="Wrap"/>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </Grid>
+</UserControl> 

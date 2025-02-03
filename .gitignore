@@ -96,5 +96,5 @@ project.lock.json
 .DS_Store
 *.pyc 
 
-notes.txt
+notes.md
 .cursorrules

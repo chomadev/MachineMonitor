@@ -6,6 +6,7 @@ using SystemChecker.WPF.Commands;
 using System.Windows;
 using System;
 using SystemChecker.WPF.Services;
+using SystemChecker.WPF.ViewModels;
 
 namespace SystemChecker.WPF.ViewModels;
 
@@ -18,16 +19,22 @@ public class MainViewModel : ViewModelBase, IDisposable
     private ConfigurationViewModel _configViewModel;
     private string _lastCheckTime;
     private SystemCheck? _lastCheckResult;
+    private readonly TcpPortsViewModel _tcpPortsViewModel;
+    private readonly LogsViewModel _logsViewModel;
 
     public MainViewModel(
         ISystemCheckService systemCheckService,
         SchedulerExecutionService schedulerExecutionService,
-        ConfigurationViewModel configViewModel)
+        ConfigurationViewModel configViewModel,
+        TcpPortsViewModel tcpPortsViewModel,
+        LogsViewModel logsViewModel)
     {
         _systemCheckService = systemCheckService;
         _schedulerExecutionService = schedulerExecutionService;
         _configViewModel = configViewModel;
         _lastCheckTime = "Nenhuma verificação realizada";
+        _tcpPortsViewModel = tcpPortsViewModel;
+        _logsViewModel = logsViewModel;
         
         CheckNowCommand = new AsyncRelayCommand(PerformCheck, () => !IsChecking);
         
@@ -80,6 +87,10 @@ public class MainViewModel : ViewModelBase, IDisposable
 
     public ICommand CheckNowCommand { get; }
 
+    public TcpPortsViewModel TcpPortsViewModel => _tcpPortsViewModel;
+
+    public LogsViewModel LogsViewModel => _logsViewModel;
+
     private async Task PerformCheck()
     {
         try
@@ -125,5 +136,6 @@ public class MainViewModel : ViewModelBase, IDisposable
     {
         _schedulerExecutionService.SystemCheckCompleted -= OnSystemCheckCompleted;
         _schedulerExecutionService.SystemCheckStarted -= OnSystemCheckStarted;
+        _logsViewModel.Dispose();
     }
 } 

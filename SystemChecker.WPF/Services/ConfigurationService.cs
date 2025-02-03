@@ -66,4 +66,26 @@ public class ConfigurationService : IConfigurationService
     {
         return _configuration.GetValue<string>("SchedulerSettings:CheckSchedule") ?? "*/5 * * * *"; // padrão: a cada 5 minutos
     }
+
+    public IEnumerable<int> GetMonitoredPorts()
+    {
+        var ports = _configuration.GetSection("TcpPortSettings:Ports")
+            .Get<int[]>() ?? Array.Empty<int>();
+        return ports;
+    }
+
+    public async Task UpdateMonitoredPortsAsync(IEnumerable<int> ports)
+    {
+        var jsonString = await File.ReadAllTextAsync(_configPath);
+        var configObject = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonString);
+
+        var portSettings = new { Ports = ports.ToArray() };
+        var portJson = JsonSerializer.Serialize(portSettings);
+
+        configObject["TcpPortSettings"] = JsonDocument.Parse(portJson).RootElement;
+
+        var options = new JsonSerializerOptions { WriteIndented = true };
+        var updatedJson = JsonSerializer.Serialize(configObject, options);
+        await File.WriteAllTextAsync(_configPath, updatedJson);
+    }
 } 

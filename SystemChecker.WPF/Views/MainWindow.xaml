@@ -44,6 +44,14 @@
             <TabItem Header="Configurações">
                 <controls:ConfigurationTabControl DataContext="{Binding}"/>
             </TabItem>
+
+            <TabItem Header="Portas TCP">
+                <controls:TcpPortsConfigControl DataContext="{Binding TcpPortsViewModel}"/>
+            </TabItem>
+
+            <TabItem Header="Logs">
+                <controls:LogsTabControl DataContext="{Binding LogsViewModel}"/>
+            </TabItem>
         </TabControl>
     </Grid>
 </Window> 

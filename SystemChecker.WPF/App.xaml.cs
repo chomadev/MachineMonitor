@@ -8,6 +8,7 @@ using SystemChecker.Infrastructure.Services;
 using SystemChecker.WPF.Services;
 using SystemChecker.WPF.ViewModels;
 using SystemChecker.WPF.Views;
+using Microsoft.Extensions.Logging;
 
 namespace SystemChecker.WPF;
 
@@ -19,6 +20,10 @@ public partial class App : Application
     public App()
     {
         IsShuttingDown = false;
+
+        // Cria o logger provider antes para evitar ciclo de dependência
+        var loggerProvider = new UiLoggerProvider();
+
         _host = Host.CreateDefaultBuilder()
             .ConfigureServices((context, services) =>
             {
@@ -28,17 +33,29 @@ public partial class App : Application
                 services.Configure<SchedulerSettings>(
                     context.Configuration.GetSection(nameof(SchedulerSettings)));
 
+                // Logging
+                services.AddSingleton(loggerProvider);
+                services.AddLogging(builder =>
+                {
+                    builder.ClearProviders();
+                    builder.AddProvider(loggerProvider);
+                    builder.SetMinimumLevel(LogLevel.Information);
+                });
+
                 // Serviços
                 services.AddSingleton<ITrayIconService, TrayIconService>();
                 services.AddSingleton<ISchedulerService, SchedulerService>();
                 services.AddSingleton<SchedulerExecutionService>();
                 services.AddHostedService(sp => sp.GetRequiredService<SchedulerExecutionService>());
                 services.AddSingleton<IConfigurationService, ConfigurationService>();
+                services.AddSingleton<ITcpPortService, TcpPortService>();
 
                 // UI
                 services.AddSingleton<ConfigurationViewModel>();
                 services.AddSingleton<MainViewModel>();
                 services.AddSingleton<MainWindow>();
+                services.AddSingleton<TcpPortsViewModel>();
+                services.AddSingleton<LogsViewModel>();
             })
             .Build();
     }
