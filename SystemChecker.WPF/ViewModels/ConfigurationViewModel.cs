@@ -1,0 +1,194 @@
+using System.Collections.ObjectModel;
+using System.ServiceProcess;
+using System.Windows.Input;
+using SystemChecker.Core.Interfaces;
+using SystemChecker.WPF.Commands;
+
+namespace SystemChecker.WPF.ViewModels;
+
+public class ConfigurationViewModel : ViewModelBase
+{
+    private readonly IConfigurationService _configService;
+    private string _cronExpression;
+    private string _validationMessage;
+    private string _selectedService;
+    private string _newServiceName;
+    private ObservableCollection<string> _monitoredServices;
+
+    public ConfigurationViewModel(IConfigurationService configService)
+    {
+        _configService = configService;
+
+        // Carrega as configurações iniciais
+        LoadInitialConfiguration();
+
+        SaveCommand = new AsyncRelayCommand(SaveConfiguration, CanSaveConfiguration);
+        ValidateCommand = new RelayCommand(ValidateCronExpression);
+        AddServiceCommand = new RelayCommand(AddService, CanAddService);
+        RemoveServiceCommand = new RelayCommand(RemoveService, CanRemoveService);
+    }
+
+    public async Task LoadInitialConfiguration()
+    {
+        try
+        {
+            // Carrega o agendamento CRON
+            _cronExpression = _configService.GetCurrentSchedule();
+            OnPropertyChanged(nameof(CronExpression));
+
+            // Carrega a lista de serviços monitorados
+            _monitoredServices = new ObservableCollection<string>(_configService.GetMonitoredServices());
+            OnPropertyChanged(nameof(MonitoredServices));
+
+            // Valida a expressão CRON inicial
+            ValidateCronExpression();
+
+            // Notifica que as configurações foram carregadas
+            ValidationMessage = "Configurações carregadas com sucesso!";
+        }
+        catch (Exception ex)
+        {
+            ValidationMessage = $"Erro ao carregar configurações: {ex.Message}";
+        }
+    }
+
+    public ObservableCollection<string> MonitoredServices
+    {
+        get => _monitoredServices;
+        set => SetField(ref _monitoredServices, value);
+    }
+
+    public string SelectedService
+    {
+        get => _selectedService;
+        set
+        {
+            if (SetField(ref _selectedService, value))
+            {
+                (RemoveServiceCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public string NewServiceName
+    {
+        get => _newServiceName;
+        set
+        {
+            if (SetField(ref _newServiceName, value))
+            {
+                (AddServiceCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public string CronExpression
+    {
+        get => _cronExpression;
+        set
+        {
+            if (SetField(ref _cronExpression, value))
+            {
+                ValidateCronExpression();
+                (SaveCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public string ValidationMessage
+    {
+        get => _validationMessage;
+        private set => SetField(ref _validationMessage, value);
+    }
+
+    public ICommand SaveCommand { get; }
+    public ICommand ValidateCommand { get; }
+    public ICommand AddServiceCommand { get; }
+    public ICommand RemoveServiceCommand { get; }
+
+    private bool CanSaveConfiguration()
+    {
+        try
+        {
+            Cronos.CronExpression.Parse(_cronExpression);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private bool CanAddService()
+    {
+        if (string.IsNullOrWhiteSpace(NewServiceName) ||
+            MonitoredServices.Contains(NewServiceName))
+            return false;
+
+        try
+        {
+            var service = new ServiceController(NewServiceName);
+            return true;
+        }
+        catch
+        {
+            ValidationMessage = $"Serviço '{NewServiceName}' não encontrado no sistema";
+            return false;
+        }
+    }
+
+    private void AddService()
+    {
+        if (CanAddService())
+        {
+            MonitoredServices.Add(NewServiceName);
+            NewServiceName = string.Empty;
+            OnPropertyChanged(nameof(NewServiceName));
+            ValidationMessage = $"Serviço adicionado com sucesso";
+        }
+    }
+
+    private bool CanRemoveService()
+    {
+        return !string.IsNullOrWhiteSpace(SelectedService);
+    }
+
+    private void RemoveService()
+    {
+        if (CanRemoveService())
+        {
+            MonitoredServices.Remove(SelectedService);
+            ValidationMessage = "Serviço removido com sucesso";
+        }
+    }
+
+    private async Task SaveConfiguration()
+    {
+        try
+        {
+            await _configService.UpdateConfiguration(
+                _cronExpression,
+                MonitoredServices.ToList());
+
+            ValidationMessage = "Configurações salvas com sucesso!";
+        }
+        catch (Exception ex)
+        {
+            ValidationMessage = $"Erro ao salvar: {ex.Message}";
+        }
+    }
+
+    private void ValidateCronExpression()
+    {
+        try
+        {
+            var cron = Cronos.CronExpression.Parse(_cronExpression);
+            var nextRun = cron.GetNextOccurrence(DateTime.UtcNow);
+            ValidationMessage = $"Válido! Próxima execução: {nextRun?.ToLocalTime():dd/MM/yyyy HH:mm:ss}";
+        }
+        catch (Exception ex)
+        {
+            ValidationMessage = $"Expressão CRON inválida: {ex.Message}";
+        }
+    }
+}

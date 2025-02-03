@@ -1,0 +1,93 @@
+<UserControl x:Class="SystemChecker.WPF.Views.Controls.ConfigurationTabControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Configuração de Agendamento -->
+        <GroupBox Header="Agendamento" Grid.Row="0" Margin="0,0,0,10">
+            <Grid Margin="5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" 
+                          Text="Expressão CRON para Agendamento"
+                          FontWeight="Bold"
+                          Margin="0,0,0,5"/>
+
+                <TextBox Grid.Row="1" 
+                        Text="{Binding ConfigViewModel.CronExpression, UpdateSourceTrigger=PropertyChanged}"
+                        Margin="0,0,0,5"/>
+
+                <Button Grid.Row="2" 
+                        Content="Validar Expressão"
+                        Command="{Binding ConfigViewModel.ValidateCommand}"
+                        HorizontalAlignment="Left"
+                        Margin="0,0,0,10"
+                        Padding="10,5"/>
+
+                <StackPanel Grid.Row="3" Margin="0,5">
+                    <TextBlock Text="Exemplos de expressões CRON:"/>
+                    <TextBlock Text="*/15 * * * * = A cada 15 minutos" Margin="10,2,0,0"/>
+                    <TextBlock Text="0 * * * * = No início de cada hora" Margin="10,2,0,0"/>
+                    <TextBlock Text="0 9-17 * * * = A cada hora entre 9h e 17h" Margin="10,2,0,0"/>
+                    <TextBlock Text="0 9 * * * = Todo dia às 9h" Margin="10,2,0,0"/>
+                    <TextBlock Text="0 9 * * 1-5 = Todo dia útil às 9h" Margin="10,2,0,0"/>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+
+        <!-- Configuração de Serviços -->
+        <GroupBox Header="Serviços Monitorados" Grid.Row="1" Margin="0,0,0,10">
+            <Grid Margin="5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,5">
+                    <TextBox Text="{Binding ConfigViewModel.NewServiceName, UpdateSourceTrigger=PropertyChanged}"
+                             Width="200" Margin="0,0,5,0"/>
+                    <Button Content="Adicionar Serviço"
+                            Command="{Binding ConfigViewModel.AddServiceCommand}"
+                            Padding="10,5"/>
+                </StackPanel>
+
+                <ListBox Grid.Row="1" 
+                         ItemsSource="{Binding ConfigViewModel.MonitoredServices}"
+                         SelectedItem="{Binding ConfigViewModel.SelectedService}"
+                         MinHeight="100"
+                         Margin="0,5"/>
+
+                <Button Grid.Row="2" 
+                        Content="Remover Serviço Selecionado"
+                        Command="{Binding ConfigViewModel.RemoveServiceCommand}"
+                        HorizontalAlignment="Right"
+                        Margin="0,5,0,0"
+                        Padding="10,5"/>
+            </Grid>
+        </GroupBox>
+
+        <!-- Botões de Ação -->
+        <StackPanel Grid.Row="2" Orientation="Vertical">
+            <TextBlock Text="{Binding ConfigViewModel.ValidationMessage}"
+                      Foreground="{Binding ConfigViewModel.ValidationMessage, Converter={StaticResource MessageColorConverter}}"
+                      TextWrapping="Wrap"
+                      Margin="0,0,0,10"/>
+            
+            <Button Content="Salvar Configurações"
+                    Command="{Binding ConfigViewModel.SaveCommand}"
+                    HorizontalAlignment="Right"
+                    Padding="20,5"/>
+        </StackPanel>
+    </Grid>
+</UserControl> 
