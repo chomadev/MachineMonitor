@@ -1,6 +1,3 @@
-using System.IO;
-using System.Linq;
-using System.Threading.Tasks;
 using SystemChecker.Core.Models;
 
 namespace SystemChecker.Infrastructure.Services;
@@ -21,7 +18,7 @@ public class DiskChecker : IDiskChecker
                 DriveLetter = d.Name,
                 TotalSpace = d.TotalSize,
                 FreeSpace = d.AvailableFreeSpace,
-                UsagePercentage = ((double)(d.TotalSize - d.AvailableFreeSpace) / d.TotalSize) * 100
+                UsagePercentage = (double)(d.TotalSize - d.AvailableFreeSpace) / d.TotalSize * 100
             })
             .ToArray();
 
