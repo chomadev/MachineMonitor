@@ -9,6 +9,7 @@ using SystemChecker.WPF.Services;
 using SystemChecker.WPF.ViewModels;
 using SystemChecker.WPF.Views;
 using Microsoft.Extensions.Logging;
+using SystemChecker.Infrastructure.Settings;
 
 namespace SystemChecker.WPF;
 
@@ -33,6 +34,9 @@ public partial class App : Application
                 services.Configure<SchedulerSettings>(
                     context.Configuration.GetSection(nameof(SchedulerSettings)));
 
+                // Configurações da API
+                services.Configure<ApiSettings>(context.Configuration.GetSection("ApiSettings"));
+
                 // Logging
                 services.AddSingleton(loggerProvider);
                 services.AddLogging(builder =>
@@ -49,6 +53,7 @@ public partial class App : Application
                 services.AddHostedService(sp => sp.GetRequiredService<SchedulerExecutionService>());
                 services.AddSingleton<IConfigurationService, ConfigurationService>();
                 services.AddSingleton<ITcpPortService, TcpPortService>();
+                services.AddHttpClient<ISystemCheckService, SystemCheckService>();
 
                 // UI
                 services.AddSingleton<ConfigurationViewModel>();

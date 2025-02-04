@@ -10,6 +10,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SystemChecker.WPF", "System
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SystemChecker.Tests", "SystemChecker.Tests\SystemChecker.Tests.csproj", "{C3210612-AAE1-462B-8E83-86A8EF1F5704}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SystemChecker.API", "SystemChecker.API\SystemChecker.API.csproj", "{F552092D-45C0-4590-8EB7-00E76CE4707B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,10 @@ Global
 		{C3210612-AAE1-462B-8E83-86A8EF1F5704}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C3210612-AAE1-462B-8E83-86A8EF1F5704}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C3210612-AAE1-462B-8E83-86A8EF1F5704}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F552092D-45C0-4590-8EB7-00E76CE4707B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F552092D-45C0-4590-8EB7-00E76CE4707B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F552092D-45C0-4590-8EB7-00E76CE4707B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F552092D-45C0-4590-8EB7-00E76CE4707B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

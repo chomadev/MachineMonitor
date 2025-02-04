@@ -1,6 +1,9 @@
+using System.Net.Http.Json;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SystemChecker.Core.Interfaces;
 using SystemChecker.Core.Models;
-using Microsoft.Extensions.Logging;
+using SystemChecker.Infrastructure.Settings;
 
 namespace SystemChecker.Infrastructure.Services;
 
@@ -14,6 +17,8 @@ public class SystemCheckService : ISystemCheckService
     private readonly IConfigurationService _configService;
     private readonly ITcpPortService _tcpPortService;
     private readonly IFolderMonitor _folderMonitor;
+    private readonly HttpClient _httpClient;
+    private readonly string _apiUrl;
 
     public SystemCheckService(
         ILogger<SystemCheckService> logger,
@@ -23,7 +28,9 @@ public class SystemCheckService : ISystemCheckService
         IResourceChecker resourceChecker,
         IConfigurationService configService,
         ITcpPortService tcpPortService,
-        IFolderMonitor folderMonitor)
+        IFolderMonitor folderMonitor,
+        IOptions<ApiSettings> apiSettings,
+        HttpClient httpClient)
     {
         _logger = logger;
         _serviceChecker = serviceChecker;
@@ -33,6 +40,11 @@ public class SystemCheckService : ISystemCheckService
         _configService = configService;
         _tcpPortService = tcpPortService;
         _folderMonitor = folderMonitor;
+        _httpClient = httpClient;
+        
+        // Remove redirecionamento HTTPS
+        _httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+        _apiUrl = $"{apiSettings.Value.BaseUrl}/api/systemcheck";
     }
 
     public async Task<SystemCheck> PerformSystemCheckAsync()
@@ -64,15 +76,35 @@ public class SystemCheckService : ISystemCheckService
         systemCheck.Ports = (await _tcpPortService.CheckPortsAsync(ports)).ToArray();
         _logger.LogInformation("Verificação de portas TCP concluída");
 
+        // Verifica discos
+        _logger.LogInformation("Iniciando verificação de discos...");
+        systemCheck.Disks = (await _diskChecker.CheckDisksAsync()).ToArray();
+        _logger.LogInformation("Verificação de discos concluída");
+
         return systemCheck;
     }
 
     public async Task<bool> PushCheckResultAsync(SystemCheck check)
     {
-        _logger.LogInformation("Iniciando envio dos resultados da verificação...");
-        // Implementação do envio para API será adicionada posteriormente
-        await Task.CompletedTask;
-        _logger.LogInformation("Envio dos resultados concluído");
-        return true;
+        try
+        {
+            _logger.LogInformation("Iniciando envio dos resultados da verificação para a API...");
+            
+            var response = await _httpClient.PostAsJsonAsync(_apiUrl, check);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                _logger.LogInformation("Resultados enviados com sucesso para a API");
+                return true;
+            }
+            
+            _logger.LogError("Falha ao enviar resultados para API. Status: {StatusCode}", response.StatusCode);
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao enviar resultados para API");
+            return false;
+        }
     }
 }
