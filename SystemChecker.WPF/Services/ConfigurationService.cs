@@ -34,29 +34,29 @@ public class ConfigurationService : IConfigurationService
 
     public async Task UpdateConfiguration(string cronExpression, List<string> services)
     {
-        // Lê o arquivo existente
+        // Read existing file
         var jsonString = await File.ReadAllTextAsync(_configPath);
         var configObject = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonString);
 
-        // Atualiza o agendamento
+        // Update schedule
         var schedulerSettings = new
         {
             CheckSchedule = cronExpression
         };
         var schedulerJson = JsonSerializer.Serialize(schedulerSettings);
 
-        // Atualiza os serviços
+        // Update services
         var serviceSettings = new
         {
             ServicesToMonitor = services.ToArray()
         };
         var serviceJson = JsonSerializer.Serialize(serviceSettings);
 
-        // Atualiza o objeto de configuração
+        // Update configuration object
         configObject["SchedulerSettings"] = JsonDocument.Parse(schedulerJson).RootElement;
         configObject["ServiceSettings"] = JsonDocument.Parse(serviceJson).RootElement;
 
-        // Salva o arquivo atualizado
+        // Save updated file
         var options = new JsonSerializerOptions { WriteIndented = true };
         var updatedJson = JsonSerializer.Serialize(configObject, options);
         await File.WriteAllTextAsync(_configPath, updatedJson);

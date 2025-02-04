@@ -42,7 +42,7 @@ public partial class App : Application
                     builder.SetMinimumLevel(LogLevel.Information);
                 });
 
-                // Serviços
+                // Services
                 services.AddSingleton<ITrayIconService, TrayIconService>();
                 services.AddSingleton<ISchedulerService, SchedulerService>();
                 services.AddSingleton<SchedulerExecutionService>();
@@ -67,7 +67,7 @@ public partial class App : Application
         var trayService = _host.Services.GetRequiredService<ITrayIconService>();
         trayService.Initialize();
 
-        // Carrega as configurações iniciais
+        // Load initial settings
         // var configService = _host.Services.GetRequiredService<IConfigurationService>();
         var configViewModel = _host.Services.GetRequiredService<ConfigurationViewModel>();
         await configViewModel.LoadInitialConfiguration();

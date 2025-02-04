@@ -44,11 +44,11 @@ public class ConfigurationViewModel : ViewModelBase
             ValidateCronExpression();
 
             // Notifica que as configurações foram carregadas
-            ValidationMessage = "Configurações carregadas com sucesso!";
+            ValidationMessage = "Settings loaded successfully!";
         }
         catch (Exception ex)
         {
-            ValidationMessage = $"Erro ao carregar configurações: {ex.Message}";
+            ValidationMessage = $"Error loading settings: {ex.Message}";
         }
     }
 
@@ -132,7 +132,7 @@ public class ConfigurationViewModel : ViewModelBase
         }
         catch
         {
-            ValidationMessage = $"Serviço '{NewServiceName}' não encontrado no sistema";
+            ValidationMessage = $"Service '{NewServiceName}' not found in system";
             return false;
         }
     }
@@ -144,7 +144,7 @@ public class ConfigurationViewModel : ViewModelBase
             MonitoredServices.Add(NewServiceName);
             NewServiceName = string.Empty;
             OnPropertyChanged(nameof(NewServiceName));
-            ValidationMessage = $"Serviço adicionado com sucesso";
+            ValidationMessage = "Service added successfully";
         }
     }
 
@@ -158,7 +158,7 @@ public class ConfigurationViewModel : ViewModelBase
         if (CanRemoveService())
         {
             MonitoredServices.Remove(SelectedService);
-            ValidationMessage = "Serviço removido com sucesso";
+            ValidationMessage = "Service removed successfully";
         }
     }
 
@@ -170,11 +170,11 @@ public class ConfigurationViewModel : ViewModelBase
                 _cronExpression,
                 MonitoredServices.ToList());
 
-            ValidationMessage = "Configurações salvas com sucesso!";
+            ValidationMessage = "Settings saved successfully!";
         }
         catch (Exception ex)
         {
-            ValidationMessage = $"Erro ao salvar: {ex.Message}";
+            ValidationMessage = $"Error saving: {ex.Message}";
         }
     }
 
@@ -184,11 +184,11 @@ public class ConfigurationViewModel : ViewModelBase
         {
             var cron = Cronos.CronExpression.Parse(_cronExpression);
             var nextRun = cron.GetNextOccurrence(DateTime.UtcNow);
-            ValidationMessage = $"Válido! Próxima execução: {nextRun?.ToLocalTime():dd/MM/yyyy HH:mm:ss}";
+            ValidationMessage = $"Valid! Next execution: {nextRun?.ToLocalTime():dd/MM/yyyy HH:mm:ss}";
         }
         catch (Exception ex)
         {
-            ValidationMessage = $"Expressão CRON inválida: {ex.Message}";
+            ValidationMessage = $"Invalid CRON expression: {ex.Message}";
         }
     }
 }

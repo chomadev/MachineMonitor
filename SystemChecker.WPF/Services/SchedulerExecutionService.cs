@@ -37,7 +37,7 @@ namespace SystemChecker.WPF.Services
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Iniciando SchedulerExecutionService com expressão CRON: {Schedule}",
+            _logger.LogInformation("Starting SchedulerExecutionService with CRON expression: {Schedule}",
                 _schedulerService.CurrentSchedule);
 
             _timer = new Timer(DoWork, null, TimeSpan.Zero, TimeSpan.FromMinutes(1));
@@ -46,7 +46,7 @@ namespace SystemChecker.WPF.Services
 
         public Task StopAsync(CancellationToken cancellationToken)
         {
-            _logger.LogInformation("Parando SchedulerExecutionService");
+            _logger.LogInformation("Stopping SchedulerExecutionService");
             _timer?.Change(Timeout.Infinite, 0);
             return Task.CompletedTask;
         }
@@ -55,7 +55,7 @@ namespace SystemChecker.WPF.Services
         {
             _cronExpression = CronExpression.Parse(newSchedule);
             _nextRun = null;
-            _logger.LogInformation("Agendamento atualizado para: {Schedule}", newSchedule);
+            _logger.LogInformation("Schedule updated to: {Schedule}", newSchedule);
         }
 
         private async void DoWork(object? state)
@@ -78,7 +78,7 @@ namespace SystemChecker.WPF.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro no processamento do agendador");
+                _logger.LogError(ex, "Error in scheduler processing");
             }
         }
 
@@ -86,7 +86,7 @@ namespace SystemChecker.WPF.Services
         {
             try
             {
-                _logger.LogInformation("Iniciando verificação do sistema");
+                _logger.LogInformation("Starting system check");
                 
                 // Notifica início da verificação
                 SystemCheckStarted?.Invoke(this, EventArgs.Empty);
@@ -97,17 +97,17 @@ namespace SystemChecker.WPF.Services
                 SystemCheckCompleted?.Invoke(this, result);
                 
                 _trayIconService.ShowNotification(
-                    "Verificação Agendada",
-                    "A verificação do sistema foi concluída com sucesso.");
+                    "Scheduled Check",
+                    "System check completed successfully.");
                 
-                _logger.LogInformation("Verificação do sistema concluída com sucesso");
+                _logger.LogInformation("System check completed successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro durante a verificação do sistema");
+                _logger.LogError(ex, "Error during system check");
                 _trayIconService.ShowNotification(
-                    "Erro na Verificação",
-                    $"Ocorreu um erro durante a verificação: {ex.Message}");
+                    "Check Error",
+                    $"An error occurred during the check: {ex.Message}");
             }
         }
 

@@ -43,9 +43,9 @@ public class SystemCheckService : ISystemCheckService
         };
 
         // Verifica serviços
-        _logger.LogInformation("Iniciando verificação de serviços...");
+        _logger.LogInformation("Starting services check...");
         systemCheck.Services = await _serviceChecker.CheckServicesAsync(_configService.GetMonitoredServices());
-        _logger.LogInformation("Verificação de serviços concluída");
+        _logger.LogInformation("Services check completed");
 
         // Verifica recursos (CPU/Memória)
         _logger.LogInformation("Iniciando verificação de recursos (CPU/Memória)...");

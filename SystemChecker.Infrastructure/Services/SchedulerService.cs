@@ -23,7 +23,7 @@ namespace SystemChecker.Infrastructure.Services
 
         public async Task UpdateScheduleAsync(string cronExpression)
         {
-            _logger.LogInformation("Atualizando agendamento para: {Schedule}", cronExpression);
+            _logger.LogInformation("Updating schedule to: {Schedule}", cronExpression);
             
             try
             {
@@ -33,11 +33,11 @@ namespace SystemChecker.Infrastructure.Services
                 // Notifica a mudança
                 ScheduleChanged?.Invoke(this, cronExpression);
                 
-                _logger.LogInformation("Agendamento atualizado com sucesso");
+                _logger.LogInformation("Schedule updated successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao atualizar agendamento");
+                _logger.LogError(ex, "Error updating schedule");
                 throw;
             }
         }
