@@ -44,7 +44,7 @@ public class SystemCheckService : ISystemCheckService
         
         // Remove redirecionamento HTTPS
         _httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
-        _apiUrl = $"{apiSettings.Value.BaseUrl}/api/systemcheck";
+        _apiUrl = $"{apiSettings.Value.BaseUrl}/api/systemcheck?apiKey={apiSettings.Value.MachineKey}";
     }
 
     public async Task<SystemCheck> PerformSystemCheckAsync()

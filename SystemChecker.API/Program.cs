@@ -32,11 +32,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "SystemChecker API v1");
+        c.RoutePrefix = "swagger";
     });
 }
+else 
+{
+    app.UseHttpsRedirection();
+}
 
-// Usa CORS antes do UseHttpsRedirection
+// Usa CORS
 app.UseCors("AllowAll");
 
 // Endpoints
