@@ -1,0 +1,69 @@
+name: Build WPF Application
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    env:
+      Solution_Name: SystemChecker.sln
+      Wpf_Project_Path: SystemChecker.WPF/SystemChecker.WPF.csproj
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+        
+    - name: Restore dependencies
+      run: dotnet restore $env:Solution_Name
+      
+    - name: Build solution
+      run: dotnet build $env:Solution_Name --configuration Release --no-restore
+      
+    - name: Execute unit tests
+      run: dotnet test $env:Solution_Name --configuration Release --no-build
+      
+    - name: Publish WPF application
+      run: dotnet publish $env:Wpf_Project_Path --configuration Release --no-build --output publish
+      
+    - name: Create ZIP archive
+      run: Compress-Archive -Path publish/* -DestinationPath SystemChecker.zip
+      
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: SystemChecker
+        path: SystemChecker.zip
+        
+    - name: Create Release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ github.run_number }}
+        release_name: Release v${{ github.run_number }}
+        draft: false
+        prerelease: false
+        
+    - name: Upload Release Asset
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./SystemChecker.zip
+        asset_name: SystemChecker.zip
+        asset_content_type: application/zip 
