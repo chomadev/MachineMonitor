@@ -6,7 +6,7 @@ using Xunit;
 
 namespace SystemChecker.Tests.ViewModels;
 
-public class ConfigurationViewModelTests
+public class ConfigurationViewModelTests : TestBase
 {
     private readonly Mock<IConfigurationService> _configServiceMock;
     private readonly ConfigurationViewModel _viewModel;
@@ -16,6 +16,8 @@ public class ConfigurationViewModelTests
         _configServiceMock = new Mock<IConfigurationService>();
         _configServiceMock.Setup(x => x.GetCurrentSchedule())
             .Returns("*/15 * * * *");
+        _configServiceMock.Setup(x => x.GetMonitoredServices())
+            .Returns(new List<string> { "TestService1", "TestService2" });
 
         _viewModel = new ConfigurationViewModel(_configServiceMock.Object);
     }
@@ -73,23 +75,57 @@ public class ConfigurationViewModelTests
     [Fact]
     public async Task LoadInitialConfiguration_ShouldLoadCorrectly()
     {
-        // Arrange
-        var configService = new Mock<IConfigurationService>();
-        configService.Setup(x => x.GetCurrentSchedule())
-            .Returns("*/15 * * * *");
-        configService.Setup(x => x.GetMonitoredServices())
-            .Returns(new List<string> { "Service1", "Service2" });
-
-        var viewModel = new ConfigurationViewModel(configService.Object);
-
         // Act
-        await viewModel.LoadInitialConfiguration();
+        await _viewModel.LoadInitialConfiguration();
 
         // Assert
-        Assert.Equal("*/15 * * * *", viewModel.CronExpression);
-        Assert.Equal(2, viewModel.MonitoredServices.Count);
-        Assert.Contains("Service1", viewModel.MonitoredServices);
-        Assert.Contains("Service2", viewModel.MonitoredServices);
-        Assert.Contains("sucesso", viewModel.ValidationMessage);
+        Assert.Equal("*/15 * * * *", _viewModel.CronExpression);
+        Assert.Equal(2, _viewModel.MonitoredServices.Count);
+        Assert.Contains("TestService1", _viewModel.MonitoredServices);
+        Assert.Contains("TestService2", _viewModel.MonitoredServices);
+        Assert.Contains("successfully", _viewModel.ValidationMessage);
+    }
+
+    [Fact]
+    public void ValidateCronExpression_ShouldShowValidationMessage()
+    {
+        // Arrange
+        _viewModel.CronExpression = "*/15 * * * *";
+
+        // Act
+        _viewModel.ValidateCommand.Execute(null);
+
+        // Assert
+        Assert.Contains("Valid", _viewModel.ValidationMessage);
+        Assert.Contains("Next execution", _viewModel.ValidationMessage);
+    }
+
+    [Fact]
+    public async Task SaveConfiguration_ShouldUpdateConfigurationService()
+    {
+        // Arrange
+        var savedCronExpression = string.Empty;
+        var savedServices = new List<string>();
+
+        _configServiceMock.Setup(x => x.UpdateConfiguration(
+            It.IsAny<string>(),
+            It.IsAny<List<string>>()))
+            .Callback<string, List<string>>((cron, services) =>
+            {
+                savedCronExpression = cron;
+                savedServices = services;
+            })
+            .Returns(Task.CompletedTask);
+
+        _viewModel.CronExpression = "*/30 * * * *";
+        _viewModel.MonitoredServices.Add("NewService");
+
+        // Act
+        await _viewModel.SaveCommand.ExecuteAsync(null);
+
+        // Assert
+        Assert.Equal("*/30 * * * *", savedCronExpression);
+        Assert.Contains("NewService", savedServices);
+        Assert.Contains("successfully", _viewModel.ValidationMessage);
     }
 }

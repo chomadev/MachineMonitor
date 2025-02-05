@@ -30,8 +30,8 @@ jobs:
     - name: Build solution
       run: dotnet build $env:Solution_Name --configuration Release --no-restore
       
-    # - name: Execute unit tests
-    #   run: dotnet test $env:Solution_Name --configuration Release --no-build
+    - name: Execute unit tests
+      run: dotnet test $env:Solution_Name --configuration Release --no-build
       
     - name: Publish WPF application
       run: dotnet publish $env:Wpf_Project_Path --configuration Release --no-build --output publish
