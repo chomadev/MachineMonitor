@@ -1,9 +1,6 @@
-using System;
-using System.Net.Sockets;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using SystemChecker.Core.Models;
 using Microsoft.Extensions.Options;
+using System.Net.Sockets;
+using SystemChecker.Core.Models;
 using SystemChecker.Infrastructure.Settings;
 
 namespace SystemChecker.Infrastructure.Services;
@@ -32,7 +29,7 @@ public class TcpPortChecker : ITcpPortChecker
             {
                 using var client = new TcpClient();
                 var connectTask = client.ConnectAsync("localhost", portConfig.Port);
-                
+
                 if (await Task.WhenAny(connectTask, Task.Delay(1000)) == connectTask)
                 {
                     results.Add(new TcpPortStatus
@@ -65,4 +62,4 @@ public class TcpPortChecker : ITcpPortChecker
 
         return results.ToArray();
     }
-} 
+}

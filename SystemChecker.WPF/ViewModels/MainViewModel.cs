@@ -1,12 +1,9 @@
-using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 using SystemChecker.Core.Interfaces;
 using SystemChecker.Core.Models;
 using SystemChecker.WPF.Commands;
-using System.Windows;
-using System;
 using SystemChecker.WPF.Services;
-using SystemChecker.WPF.ViewModels;
 
 namespace SystemChecker.WPF.ViewModels;
 
@@ -35,9 +32,9 @@ public class MainViewModel : ViewModelBase, IDisposable
         _lastCheckTime = "Nenhuma verificação realizada";
         _tcpPortsViewModel = tcpPortsViewModel;
         _logsViewModel = logsViewModel;
-        
+
         CheckNowCommand = new AsyncRelayCommand(PerformCheck, () => !IsChecking);
-        
+
         // Inscreve nos eventos
         _schedulerExecutionService.SystemCheckCompleted += OnSystemCheckCompleted;
         _schedulerExecutionService.SystemCheckStarted += OnSystemCheckStarted;
@@ -122,13 +119,14 @@ public class MainViewModel : ViewModelBase, IDisposable
             LastCheck = result;
             LastCheckResult = result;
             LastCheckTime = $"Última verificação: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
-            
+
             OnPropertyChanged(nameof(LastCheck));
             OnPropertyChanged(nameof(LastCheck.Services));
             OnPropertyChanged(nameof(LastCheck.Cpu));
             OnPropertyChanged(nameof(LastCheck.Memory));
             OnPropertyChanged(nameof(LastCheck.Network));
             OnPropertyChanged(nameof(LastCheck.Disks));
+            OnPropertyChanged(nameof(LastCheck.Ports));
         });
     }
 
@@ -138,4 +136,4 @@ public class MainViewModel : ViewModelBase, IDisposable
         _schedulerExecutionService.SystemCheckStarted -= OnSystemCheckStarted;
         _logsViewModel.Dispose();
     }
-} 
+}
