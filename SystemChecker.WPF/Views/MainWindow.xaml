@@ -20,7 +20,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <Button Content="Verificar Agora" 
+        <Button Content="Check Now" 
                 Command="{Binding CheckNowCommand}"
                 Padding="10,5"
                 HorizontalAlignment="Right"/>
@@ -33,19 +33,19 @@
                    FontStyle="Italic"/>
 
         <TabControl Grid.Row="2">
-            <TabItem Header="Serviços">
+            <TabItem Header="Services">
                 <controls:ServicesTabControl DataContext="{Binding}"/>
             </TabItem>
 
-            <TabItem Header="CPU/Memória">
+            <TabItem Header="CPU/Memory">
                 <controls:SystemResourcesTabControl DataContext="{Binding}"/>
             </TabItem>
 
-            <TabItem Header="Configurações">
+            <TabItem Header="Settings">
                 <controls:ConfigurationTabControl DataContext="{Binding}"/>
             </TabItem>
 
-            <TabItem Header="Portas TCP">
+            <TabItem Header="TCP Ports">
                 <controls:TcpPortsConfigControl DataContext="{Binding TcpPortsViewModel}"/>
             </TabItem>
 

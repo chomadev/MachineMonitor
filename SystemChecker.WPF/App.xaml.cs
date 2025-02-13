@@ -22,7 +22,7 @@ public partial class App : Application
     {
         IsShuttingDown = false;
 
-        // Cria o logger provider antes para evitar ciclo de dependência
+        // Create logger provider first to avoid dependency cycle
         var loggerProvider = new UiLoggerProvider();
 
         _host = Host.CreateDefaultBuilder()
@@ -30,11 +30,11 @@ public partial class App : Application
             {
                 services.AddSystemChecker(context.Configuration);
 
-                // Configurações
+                // Scheduler Config
                 services.Configure<SchedulerSettings>(
                     context.Configuration.GetSection(nameof(SchedulerSettings)));
 
-                // Configurações da API
+                // API Config
                 services.Configure<ApiSettings>(context.Configuration.GetSection("ApiSettings"));
 
                 // Logging

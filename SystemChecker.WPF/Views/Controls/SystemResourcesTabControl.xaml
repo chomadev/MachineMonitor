@@ -11,25 +11,25 @@
         <GroupBox Header="CPU" Margin="5">
             <StackPanel Margin="5">
                 <TextBlock>
-                    <Run Text="Uso: "/>
+                    <Run Text="Usage: "/>
                     <Run Text="{Binding LastCheck.Cpu.UsagePercentage, StringFormat='{}{0:N1}%'}"/>
                 </TextBlock>
             </StackPanel>
         </GroupBox>
 
-        <!-- Memória -->
-        <GroupBox Header="Memória" Grid.Row="1" Margin="5">
+        <!-- Memory -->
+        <GroupBox Header="Memory" Grid.Row="1" Margin="5">
             <StackPanel Margin="5">
                 <TextBlock>
                     <Run Text="Total: "/>
                     <Run Text="{Binding LastCheck.Memory.TotalPhysicalMemory, StringFormat='{}{0:N0} MB'}"/>
                 </TextBlock>
                 <TextBlock>
-                    <Run Text="Disponível: "/>
+                    <Run Text="Available: "/>
                     <Run Text="{Binding LastCheck.Memory.AvailablePhysicalMemory, StringFormat='{}{0:N0} MB'}"/>
                 </TextBlock>
                 <TextBlock>
-                    <Run Text="Uso: "/>
+                    <Run Text="Usage: "/>
                     <Run Text="{Binding LastCheck.Memory.UsagePercentage, StringFormat='{}{0:N1}%'}"/>
                 </TextBlock>
             </StackPanel>

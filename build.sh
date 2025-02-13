@@ -24,7 +24,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Testes
+# Tests
 echo -e "${YELLOW}Running tests...${NC}"
 dotnet test --no-build --configuration Release
 if [ $? -ne 0 ]; then
@@ -32,6 +32,6 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Executar a aplicação
+# Execute the application
 echo -e "${GREEN}Starting the application...${NC}"
 dotnet run --project SystemChecker.WPF --no-build --configuration Release & 

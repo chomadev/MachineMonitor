@@ -90,13 +90,13 @@ namespace SystemChecker.Infrastructure.Services
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Não foi possível obter informações do processo via netstat para a porta {Port}", port);
+                        _logger.LogWarning(ex, "It was not possible to get process information via netstat for port {Port}", port);
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao verificar a porta {Port}", port);
+                _logger.LogError(ex, "Error checking port {Port}", port);
                 throw;
             }
 

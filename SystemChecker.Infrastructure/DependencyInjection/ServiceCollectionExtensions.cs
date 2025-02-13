@@ -12,7 +12,7 @@ public static class ServiceCollectionExtensions
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        // Configurações
+        // Settings
         services.Configure<ServiceSettings>(
             configuration.GetSection(nameof(ServiceSettings)));
         
@@ -22,7 +22,7 @@ public static class ServiceCollectionExtensions
         services.Configure<FolderMonitorSettings>(
             configuration.GetSection(nameof(FolderMonitorSettings)));
 
-        // Serviços
+        // Services
         services.AddSingleton<ISystemCheckService, SystemCheckService>();
         services.AddSingleton<IServiceChecker, ServiceChecker>();
         services.AddSingleton<INetworkChecker, NetworkChecker>();

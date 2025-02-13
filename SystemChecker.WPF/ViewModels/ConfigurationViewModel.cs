@@ -19,7 +19,7 @@ public class ConfigurationViewModel : ViewModelBase
     {
         _configService = configService;
 
-        // Carrega as configurações iniciais
+        // Load the initial settings
         LoadInitialConfiguration();
 
         SaveCommand = new AsyncRelayCommand(SaveConfiguration, CanSaveConfiguration);
@@ -32,18 +32,18 @@ public class ConfigurationViewModel : ViewModelBase
     {
         try
         {
-            // Carrega o agendamento CRON
+            // Load the CRON schedule
             _cronExpression = _configService.GetCurrentSchedule();
             OnPropertyChanged(nameof(CronExpression));
 
-            // Carrega a lista de serviços monitorados
+            // Load the monitored services list
             _monitoredServices = new ObservableCollection<string>(_configService.GetMonitoredServices());
             OnPropertyChanged(nameof(MonitoredServices));
 
-            // Valida a expressão CRON inicial
+            // Validate the initial CRON expression
             ValidateCronExpression();
 
-            // Notifica que as configurações foram carregadas
+            // Notify that the settings were loaded
             ValidationMessage = "Settings loaded successfully!";
         }
         catch (Exception ex)

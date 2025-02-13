@@ -13,7 +13,7 @@ builder.Services.AddDbContext<ApiDbContext>(options =>
 builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 builder.Services.AddScoped<ISystemCheckHistoryService, SystemCheckHistoryService>();
 
-// Adiciona CORS
+// Add CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -41,7 +41,7 @@ else
     app.UseHttpsRedirection();
 }
 
-// Usa CORS
+// Use CORS
 app.UseCors("AllowAll");
 
 // Endpoints

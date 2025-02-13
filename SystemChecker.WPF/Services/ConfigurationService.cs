@@ -64,7 +64,7 @@ public class ConfigurationService : IConfigurationService
 
     public string GetCronExpression()
     {
-        return _configuration.GetValue<string>("SchedulerSettings:CheckSchedule") ?? "*/5 * * * *"; // padrão: a cada 5 minutos
+        return _configuration.GetValue<string>("SchedulerSettings:CheckSchedule") ?? "*/5 * * * *"; // default: every 5 minutes
     }
 
     public IEnumerable<int> GetMonitoredPorts()

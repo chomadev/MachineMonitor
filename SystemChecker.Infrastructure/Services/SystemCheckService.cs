@@ -54,32 +54,32 @@ public class SystemCheckService : ISystemCheckService
             Timestamp = DateTime.Now
         };
 
-        // Verifica serviços
+        // Services Check
         _logger.LogInformation("Starting services check...");
         systemCheck.Services = await _serviceChecker.CheckServicesAsync(_configService.GetMonitoredServices());
         _logger.LogInformation("Services check completed");
 
-        // Verifica recursos (CPU/Memória)
-        _logger.LogInformation("Iniciando verificação de recursos (CPU/Memória)...");
+        // Resources Check
+        _logger.LogInformation("Starting resources check...");
         systemCheck.Cpu = await _resourceChecker.CheckCpuAsync();
         systemCheck.Memory = await _resourceChecker.CheckMemoryAsync();
-        _logger.LogInformation("Verificação de recursos concluída");
+        _logger.LogInformation("Resources check completed");
 
-        // Verifica rede
-        _logger.LogInformation("Iniciando verificação de rede...");
+        // Network Check
+        _logger.LogInformation("Starting network check...");
         systemCheck.Network = await _networkChecker.CheckNetworkAsync();
-        _logger.LogInformation("Verificação de rede concluída");
+        _logger.LogInformation("Network check completed");
 
-        // Verifica portas TCP
-        _logger.LogInformation("Iniciando verificação de portas TCP...");
+        // TCP Ports Check
+        _logger.LogInformation("Starting TCP ports check...");
         var ports = _tcpPortService.GetConfiguredPorts();
         systemCheck.Ports = (await _tcpPortService.CheckPortsAsync(ports)).ToArray();
-        _logger.LogInformation("Verificação de portas TCP concluída");
+        _logger.LogInformation("TCP ports check completed");
 
-        // Verifica discos
-        _logger.LogInformation("Iniciando verificação de discos...");
+        // Disks Check
+        _logger.LogInformation("Starting disks check...");
         systemCheck.Disks = (await _diskChecker.CheckDisksAsync()).ToArray();
-        _logger.LogInformation("Verificação de discos concluída");
+        _logger.LogInformation("Disks check completed");
 
         return systemCheck;
     }
@@ -88,22 +88,22 @@ public class SystemCheckService : ISystemCheckService
     {
         try
         {
-            _logger.LogInformation("Iniciando envio dos resultados da verificação para a API...");
+            _logger.LogInformation("Starting to send check results to API...");
             
             var response = await _httpClient.PostAsJsonAsync(_apiUrl, check);
             
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogInformation("Resultados enviados com sucesso para a API");
+                _logger.LogInformation("Results sent successfully to API");
                 return true;
             }
             
-            _logger.LogError("Falha ao enviar resultados para API. Status: {StatusCode}", response.StatusCode);
+            _logger.LogError("Failed to send results to API. Status: {StatusCode}", response.StatusCode);
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro ao enviar resultados para API");
+            _logger.LogError(ex, "Error sending results to API");
             return false;
         }
     }

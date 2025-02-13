@@ -27,10 +27,10 @@ namespace SystemChecker.Infrastructure.Services
             
             try
             {
-                // Atualiza as configurações
+                // Update the settings
                 _settings.CheckSchedule = cronExpression;
                 
-                // Notifica a mudança
+                // Notify the change
                 ScheduleChanged?.Invoke(this, cronExpression);
                 
                 _logger.LogInformation("Schedule updated successfully");
