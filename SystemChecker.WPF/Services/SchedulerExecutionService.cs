@@ -31,7 +31,7 @@ namespace SystemChecker.WPF.Services
             _logger = logger;
             _cronExpression = CronExpression.Parse(_schedulerService.CurrentSchedule);
 
-            // Inscreve no evento de mudança de agendamento
+            // Subscribe to the schedule change event
             _schedulerService.ScheduleChanged += OnScheduleChanged;
         }
 
@@ -88,7 +88,7 @@ namespace SystemChecker.WPF.Services
             {
                 _logger.LogInformation("Starting system check");
                 
-                // Notifica início da verificação
+                // Notify the start of the check
                 SystemCheckStarted?.Invoke(this, EventArgs.Empty);
                 
                 var result = await _systemCheckService.PerformSystemCheckAsync();

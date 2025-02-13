@@ -52,7 +52,7 @@ namespace SystemChecker.WPF.Services
 
                 _logs.Insert(0, entry);
 
-                // Mantém um número máximo de logs
+                // Keep a maximum number of logs
                 while (_logs.Count > MaxLogEntries)
                 {
                     _logs.RemoveAt(_logs.Count - 1);

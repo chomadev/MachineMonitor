@@ -23,10 +23,10 @@ namespace SystemChecker.WPF.ViewModels
             
             ClearLogsCommand = new RelayCommand(ClearLogs);
 
-            // Inscreve no evento de mudança da coleção de logs
+            // Insert the event handler for the logs collection change
             _loggerService.Logs.CollectionChanged += OnLogsCollectionChanged;
             
-            // Carrega os logs iniciais
+            // Load the initial logs
             UpdateFilteredLogs();
         }
 

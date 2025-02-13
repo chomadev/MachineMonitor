@@ -29,13 +29,13 @@ public class MainViewModel : ViewModelBase, IDisposable
         _systemCheckService = systemCheckService;
         _schedulerExecutionService = schedulerExecutionService;
         _configViewModel = configViewModel;
-        _lastCheckTime = "Nenhuma verificação realizada";
+        _lastCheckTime = "None check performed";
         _tcpPortsViewModel = tcpPortsViewModel;
         _logsViewModel = logsViewModel;
 
         CheckNowCommand = new AsyncRelayCommand(PerformCheck, () => !IsChecking);
 
-        // Inscreve nos eventos
+        // Subscribe to events
         _schedulerExecutionService.SystemCheckCompleted += OnSystemCheckCompleted;
         _schedulerExecutionService.SystemCheckStarted += OnSystemCheckStarted;
     }
@@ -95,7 +95,7 @@ public class MainViewModel : ViewModelBase, IDisposable
             IsChecking = true;
             LastCheck = await _systemCheckService.PerformSystemCheckAsync();
             await _systemCheckService.PushCheckResultAsync(LastCheck);
-            LastCheckTime = $"Última verificação: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
+            LastCheckTime = $"Last check: {DateTime.Now:yyyy/MM/dd HH:mm:ss}";
         }
         finally
         {
@@ -118,7 +118,7 @@ public class MainViewModel : ViewModelBase, IDisposable
             IsChecking = false;
             LastCheck = result;
             LastCheckResult = result;
-            LastCheckTime = $"Última verificação: {DateTime.Now:dd/MM/yyyy HH:mm:ss}";
+            LastCheckTime = $"Last check: {DateTime.Now:yyyy/MM/dd HH:mm:ss}";
 
             OnPropertyChanged(nameof(LastCheck));
             OnPropertyChanged(nameof(LastCheck.Services));

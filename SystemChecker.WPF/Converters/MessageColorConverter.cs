@@ -11,9 +11,9 @@ public class MessageColorConverter : IValueConverter
     {
         if (value is string message)
         {
-            if (message.StartsWith("Erro"))
+            if (message.StartsWith("Error"))
                 return new SolidColorBrush(Colors.Red);
-            if (message.StartsWith("Válido") || message.StartsWith("Configuração salva"))
+            if (message.StartsWith("Valid") || message.StartsWith("Configuration saved"))
                 return new SolidColorBrush(Colors.Green);
         }
         return new SolidColorBrush(Colors.Black);

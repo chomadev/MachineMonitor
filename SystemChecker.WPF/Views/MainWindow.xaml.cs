@@ -15,9 +15,9 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         _trayIconService = trayIconService;
 
-        // Esconde a janela ao minimizar
+        // Hide the window when minimized
         StateChanged += MainWindow_StateChanged;
-        // Impede o fechamento direto da janela
+        // Prevent the window from being closed directly
         Closing += MainWindow_Closing;
     }
 
@@ -32,7 +32,7 @@ public partial class MainWindow : Window
 
     private void MainWindow_Closing(object sender, CancelEventArgs e)
     {
-        // Se o usuário tentar fechar a janela, apenas minimiza
+        // If the user tries to close the window, only minimize
         if (!App.IsShuttingDown)
         {
             e.Cancel = true;

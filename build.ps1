@@ -1,32 +1,32 @@
-# Script de Build para SystemChecker
+# Build script for SystemChecker
 
-Write-Host "Iniciando build do SystemChecker..." -ForegroundColor Green
+Write-Host "Starting SystemChecker build..." -ForegroundColor Green
 
-# Restaurar pacotes
-Write-Host "Restaurando pacotes..." -ForegroundColor Yellow
+# Restore packages
+Write-Host "Restoring packages..." -ForegroundColor Yellow
 dotnet restore
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Erro ao restaurar pacotes" -ForegroundColor Red
+    Write-Host "Error restoring packages" -ForegroundColor Red
     exit $LASTEXITCODE
 }
 
 # Build
-Write-Host "Executando build..." -ForegroundColor Yellow
+Write-Host "Executing build..." -ForegroundColor Yellow
 dotnet build --configuration Release
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Erro no build" -ForegroundColor Red
+    Write-Host "Error on build" -ForegroundColor Red
     exit $LASTEXITCODE
 }
 
-# Testes
-Write-Host "Executando testes..." -ForegroundColor Yellow
+# Tests
+Write-Host "Executing tests..." -ForegroundColor Yellow
 dotnet test --no-build --configuration Release
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "Erro nos testes" -ForegroundColor Red
+    Write-Host "Error on tests" -ForegroundColor Red
     exit $LASTEXITCODE
 }
 
-# Executar a aplicação
-Write-Host "Iniciando a aplicação..." -ForegroundColor Green
+# Start the application
+Write-Host "Starting the application..." -ForegroundColor Green
 Start-Process dotnet -ArgumentList "run --project SystemChecker.WPF --no-build --configuration Release"
 exit

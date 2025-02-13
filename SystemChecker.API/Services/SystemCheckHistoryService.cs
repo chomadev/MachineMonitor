@@ -31,7 +31,7 @@ public class SystemCheckHistoryService : ISystemCheckHistoryService
     {
         var key = await _apiKeyService.GetApiKeyAsync(apiKey);
         if (key == null)
-            throw new UnauthorizedAccessException("API Key inválida");
+            throw new UnauthorizedAccessException("API Key is invalid");
 
         var history = new SystemCheckHistory
         {
@@ -87,7 +87,7 @@ public class SystemCheckHistoryService : ISystemCheckHistoryService
     {
         var key = await _apiKeyService.GetApiKeyAsync(apiKey);
         if (key == null)
-            throw new UnauthorizedAccessException("API Key inválida");
+            throw new UnauthorizedAccessException("API Key is invalid");
 
         return await _context.SystemCheckHistory
             .Include(h => h.Services)
@@ -108,7 +108,7 @@ public class SystemCheckHistoryService : ISystemCheckHistoryService
     {
         var key = await _apiKeyService.GetApiKeyAsync(apiKey);
         if (key == null)
-            throw new UnauthorizedAccessException("API Key inválida");
+            throw new UnauthorizedAccessException("API Key is invalid");
 
         var query = _context.SystemCheckHistory
             .Include(h => h.Services)

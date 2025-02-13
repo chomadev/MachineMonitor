@@ -4,7 +4,7 @@
     <ListView ItemsSource="{Binding LastCheck.Services}">
         <ListView.View>
             <GridView>
-                <GridViewColumn Header="Serviço" Width="200">
+                <GridViewColumn Header="Service" Width="200">
                     <GridViewColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding Name}"/>
@@ -19,7 +19,7 @@
                         </DataTemplate>
                     </GridViewColumn.CellTemplate>
                 </GridViewColumn>
-                <GridViewColumn Header="Em Execução" Width="100">
+                <GridViewColumn Header="Running" Width="100">
                     <GridViewColumn.CellTemplate>
                         <DataTemplate>
                             <TextBlock Text="{Binding IsRunning, Converter={StaticResource ServiceRunningTextConverter}}"
