@@ -1,92 +1,45 @@
 using System.Collections.ObjectModel;
-using System.Windows.Input;
-using SystemChecker.Core.Interfaces;
 using SystemChecker.Core.Models;
-using SystemChecker.WPF.Commands;
+using SystemChecker.Core.Interfaces;
+using SystemChecker.Core.Services;
 
-namespace SystemChecker.WPF.ViewModels
+namespace SystemChecker.WPF.ViewModels;
+
+public class TcpPortsViewModel : ViewModelBase
 {
-    public class TcpPortsViewModel : ViewModelBase
+    private readonly IMessagingCenter _messagingCenter;
+    private ObservableCollection<TcpPortStatus> _tcpPortStatuses;
+
+    public TcpPortsViewModel(
+        IMessagingCenter messagingCenter)
     {
-        private readonly ITcpPortService _tcpPortService;
-        private ObservableCollection<TcpPortInfo> _tcpPorts;
-        private bool _isChecking;
+        _messagingCenter = messagingCenter;
+        _tcpPortStatuses = new ObservableCollection<TcpPortStatus>();
 
-        public TcpPortsViewModel(ITcpPortService tcpPortService)
+        // Subscribe to system check updates
+        _messagingCenter.Subscribe<SystemCheck>(this, "SystemCheckCompleted", OnSystemCheckCompleted);
+    }
+
+    public ObservableCollection<TcpPortStatus> TcpPortStatuses
+    {
+        get => _tcpPortStatuses;
+        private set => SetField(ref _tcpPortStatuses, value);
+    }
+
+    private void OnSystemCheckCompleted(SystemCheck systemCheck)
+    {
+        if (systemCheck.Ports != null)
         {
-            _tcpPortService = tcpPortService;
-            _tcpPorts = new ObservableCollection<TcpPortInfo>();
-
-            SavePortsCommand = new AsyncRelayCommand(SavePorts, () => !IsChecking);
-            CheckPortsCommand = new AsyncRelayCommand(CheckPorts, () => !IsChecking);
-
-            LoadConfiguredPorts();
+            UpdatePortStatuses(systemCheck.Ports);
         }
+    }
 
-        public ObservableCollection<TcpPortInfo> TcpPorts
+    public void UpdatePortStatuses(IEnumerable<TcpPortStatus> portStatuses)
+    {
+        TcpPortStatuses.Clear();
+        foreach (var status in portStatuses)
         {
-            get => _tcpPorts;
-            set => SetField(ref _tcpPorts, value);
-        }
-
-        public bool IsChecking
-        {
-            get => _isChecking;
-            set
-            {
-                if (SetField(ref _isChecking, value))
-                {
-                    (SavePortsCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
-                    (CheckPortsCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
-                }
-            }
-        }
-
-        public ICommand SavePortsCommand { get; }
-        public ICommand CheckPortsCommand { get; }
-
-        private void LoadConfiguredPorts()
-        {
-            var ports = _tcpPortService.GetConfiguredPorts();
-            TcpPorts.Clear();
-            foreach (var port in ports)
-            {
-                TcpPorts.Add(new TcpPortInfo { Port = port });
-            }
-        }
-
-        private async Task SavePorts()
-        {
-            try
-            {
-                IsChecking = true;
-                var ports = TcpPorts.Select(p => p.Port);
-                await _tcpPortService.UpdateConfiguredPortsAsync(ports);
-                await CheckPorts();
-            }
-            finally
-            {
-                IsChecking = false;
-            }
-        }
-
-        private async Task CheckPorts()
-        {
-            try
-            {
-                IsChecking = true;
-                var ports = TcpPorts.Select(p => p.Port);
-                var results = await _tcpPortService.CheckPortsAsync(ports);
-
-                foreach (var result in results)
-                {
-                    TcpPorts.First(x => x.Port == result.Port).IsInUse = true;
-                }
-            }
-            finally
-            {
-                IsChecking = false;
-            }
+            TcpPortStatuses.Add(status);
         }
     }
 }

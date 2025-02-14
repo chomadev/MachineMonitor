@@ -41,16 +41,16 @@
                 <controls:SystemResourcesTabControl DataContext="{Binding}"/>
             </TabItem>
 
-            <TabItem Header="Settings">
-                <controls:ConfigurationTabControl DataContext="{Binding}"/>
-            </TabItem>
-
             <TabItem Header="TCP Ports">
-                <controls:TcpPortsConfigControl DataContext="{Binding TcpPortsViewModel}"/>
+                <controls:TcpPortsControl DataContext="{Binding TcpPortsViewModel}"/>
             </TabItem>
 
             <TabItem Header="Logs">
                 <controls:LogsTabControl DataContext="{Binding LogsViewModel}"/>
+            </TabItem>
+            
+            <TabItem Header="Settings">
+                <controls:ConfigurationTabControl DataContext="{Binding}"/>
             </TabItem>
         </TabControl>
     </Grid>

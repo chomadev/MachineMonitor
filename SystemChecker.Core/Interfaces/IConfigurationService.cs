@@ -4,7 +4,11 @@ public interface IConfigurationService
 {
     string GetCurrentSchedule();
     List<string> GetMonitoredServices();
-    Task UpdateConfiguration(string cronExpression, List<string> services);
-    IEnumerable<int> GetMonitoredPorts();
+    string GetMonitoredPorts();
+    
+    Task UpdateScheduleAsync(string cronExpression);
+    Task UpdateMonitoredServicesAsync(List<string> services);
     Task UpdateMonitoredPortsAsync(IEnumerable<int> ports);
+    
+    event EventHandler ConfigurationChanged;
 }

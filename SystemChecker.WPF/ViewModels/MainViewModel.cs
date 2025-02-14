@@ -10,7 +10,7 @@ namespace SystemChecker.WPF.ViewModels;
 public class MainViewModel : ViewModelBase, IDisposable
 {
     private readonly ISystemCheckService _systemCheckService;
-    private readonly SchedulerExecutionService _schedulerExecutionService;
+    private readonly IMessagingCenter _messagingCenter;
     private SystemCheck _lastCheck;
     private bool _isChecking;
     private ConfigurationViewModel _configViewModel;
@@ -21,13 +21,13 @@ public class MainViewModel : ViewModelBase, IDisposable
 
     public MainViewModel(
         ISystemCheckService systemCheckService,
-        SchedulerExecutionService schedulerExecutionService,
+        IMessagingCenter messagingCenter,
         ConfigurationViewModel configViewModel,
         TcpPortsViewModel tcpPortsViewModel,
         LogsViewModel logsViewModel)
     {
         _systemCheckService = systemCheckService;
-        _schedulerExecutionService = schedulerExecutionService;
+        _messagingCenter = messagingCenter;
         _configViewModel = configViewModel;
         _lastCheckTime = "None check performed";
         _tcpPortsViewModel = tcpPortsViewModel;
@@ -35,9 +35,9 @@ public class MainViewModel : ViewModelBase, IDisposable
 
         CheckNowCommand = new AsyncRelayCommand(PerformCheck, () => !IsChecking);
 
-        // Subscribe to events
-        _schedulerExecutionService.SystemCheckCompleted += OnSystemCheckCompleted;
-        _schedulerExecutionService.SystemCheckStarted += OnSystemCheckStarted;
+        // Subscribe to messages instead of direct events
+        _messagingCenter.Subscribe<SystemCheck>(this, "SystemCheckCompleted", OnSystemCheckCompleted);
+        _messagingCenter.Subscribe<object>(this, "SystemCheckStarted", _ => OnSystemCheckStarted());
     }
 
     public ConfigurationViewModel ConfigViewModel
@@ -103,37 +103,20 @@ public class MainViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private void OnSystemCheckStarted(object? sender, EventArgs e)
+    private void OnSystemCheckCompleted(SystemCheck check)
     {
-        Application.Current.Dispatcher.Invoke(() =>
-        {
-            IsChecking = true;
-        });
+        LastCheckResult = check;
+        LastCheckTime = check.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss");
+        IsChecking = false;
     }
 
-    private void OnSystemCheckCompleted(object? sender, SystemCheck result)
+    private void OnSystemCheckStarted()
     {
-        Application.Current.Dispatcher.Invoke(() =>
-        {
-            IsChecking = false;
-            LastCheck = result;
-            LastCheckResult = result;
-            LastCheckTime = $"Last check: {DateTime.Now:yyyy/MM/dd HH:mm:ss}";
-
-            OnPropertyChanged(nameof(LastCheck));
-            OnPropertyChanged(nameof(LastCheck.Services));
-            OnPropertyChanged(nameof(LastCheck.Cpu));
-            OnPropertyChanged(nameof(LastCheck.Memory));
-            OnPropertyChanged(nameof(LastCheck.Network));
-            OnPropertyChanged(nameof(LastCheck.Disks));
-            OnPropertyChanged(nameof(LastCheck.Ports));
-        });
+        IsChecking = true;
     }
 
     public void Dispose()
     {
-        _schedulerExecutionService.SystemCheckCompleted -= OnSystemCheckCompleted;
-        _schedulerExecutionService.SystemCheckStarted -= OnSystemCheckStarted;
         _logsViewModel.Dispose();
     }
 }

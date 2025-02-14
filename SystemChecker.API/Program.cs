@@ -2,6 +2,7 @@ using SystemChecker.API.Models;
 using SystemChecker.API.Services;
 using Microsoft.EntityFrameworkCore;
 using SystemChecker.API.Data;
+using SystemChecker.API.Routes;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +12,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<ApiDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
+builder.Services.AddScoped<IMachineService, MachineService>();
 builder.Services.AddScoped<ISystemCheckHistoryService, SystemCheckHistoryService>();
 
 // Add CORS
@@ -44,73 +46,8 @@ else
 // Use CORS
 app.UseCors("AllowAll");
 
-// Endpoints
-app.MapPost("/api/systemcheck", async (
-    SystemCheckData check,
-    string apiKey,
-    ISystemCheckHistoryService historyService) =>
-{
-    try
-    {
-        var history = await historyService.SaveCheckAsync(apiKey, check);
-        return Results.Ok(history);
-    }
-    catch (UnauthorizedAccessException)
-    {
-        return Results.Unauthorized();
-    }
-})
-.WithName("SaveSystemCheck")
-.WithOpenApi();
-
-app.MapGet("/api/systemcheck/latest", async (
-    string apiKey,
-    ISystemCheckHistoryService historyService) =>
-{
-    try
-    {
-        var latestCheck = await historyService.GetLatestCheckAsync(apiKey);
-        if (latestCheck == null)
-            return Results.NotFound();
-            
-        return Results.Ok(latestCheck);
-    }
-    catch (UnauthorizedAccessException)
-    {
-        return Results.Unauthorized();
-    }
-})
-.WithName("GetLatestSystemCheck")
-.WithOpenApi();
-
-app.MapGet("/api/systemcheck/history", async (
-    string apiKey,
-    DateTime? from,
-    DateTime? to,
-    ISystemCheckHistoryService historyService) =>
-{
-    try
-    {
-        var history = await historyService.GetCheckHistoryAsync(apiKey, from, to);
-        return Results.Ok(history);
-    }
-    catch (UnauthorizedAccessException)
-    {
-        return Results.Unauthorized();
-    }
-})
-.WithName("GetSystemCheckHistory")
-.WithOpenApi();
-
-app.MapPost("/api/keys", async (
-    IApiKeyService keyService,
-    string machineName,
-    string? description) =>
-{
-    var apiKey = await keyService.GenerateApiKeyAsync(machineName, description);
-    return Results.Ok(new { apiKey.Key, MachineName = apiKey.Machine.Name });
-})
-.WithName("GenerateApiKey")
-.WithOpenApi();
+// Map routes
+app.MapSystemCheckRoutes();
+app.MapMachineRoutes();
 
 app.Run(); 

@@ -10,7 +10,7 @@ namespace SystemChecker.Infrastructure.Services
     {
         private readonly ILogger<TcpPortService> _logger;
         private readonly IConfigurationService _configService;
-        private readonly List<int> _configuredPorts;
+        private IEnumerable<int> _cachedPorts;
 
         public TcpPortService(
             ILogger<TcpPortService> logger,
@@ -18,15 +18,29 @@ namespace SystemChecker.Infrastructure.Services
         {
             _logger = logger;
             _configService = configService;
-            _configuredPorts = new List<int>();
-            LoadConfiguredPorts();
+            _cachedPorts = LoadConfiguredPorts();
+            
+            _configService.ConfigurationChanged += (_, _) => 
+            {
+                _cachedPorts = LoadConfiguredPorts();
+                _logger.LogInformation("TCP Ports configuration updated: {Ports}", 
+                    string.Join(", ", _cachedPorts));
+            };
         }
 
-        private void LoadConfiguredPorts()
+        private IEnumerable<int> LoadConfiguredPorts()
         {
-            var ports = _configService.GetMonitoredPorts();
-            _configuredPorts.Clear();
-            _configuredPorts.AddRange(ports);
+            var portsString = _configService.GetMonitoredPorts();
+            return string.IsNullOrEmpty(portsString)
+                ? Enumerable.Empty<int>()
+                : portsString.Split(',')
+                    .Where(p => !string.IsNullOrWhiteSpace(p))
+                    .Select(p => int.Parse(p.Trim()));
+        }
+
+        public IEnumerable<int> GetConfiguredPorts()
+        {
+            return _cachedPorts;
         }
 
         public async Task<IEnumerable<TcpPortStatus>> CheckPortsAsync(IEnumerable<int> ports)
@@ -90,7 +104,7 @@ namespace SystemChecker.Infrastructure.Services
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "It was not possible to get process information via netstat for port {Port}", port);
+                        _logger.LogWarning(ex, "Could not get process information via netstat for port {Port}", port);
                     }
                 }
             }
@@ -103,13 +117,9 @@ namespace SystemChecker.Infrastructure.Services
             return portInfo;
         }
 
-        public IEnumerable<int> GetConfiguredPorts() => _configuredPorts.ToList();
-
         public async Task UpdateConfiguredPortsAsync(IEnumerable<int> ports)
         {
             await _configService.UpdateMonitoredPortsAsync(ports);
-            _configuredPorts.Clear();
-            _configuredPorts.AddRange(ports);
         }
     }
 }

@@ -49,8 +49,8 @@ public partial class App : Application
                 // Services
                 services.AddSingleton<ITrayIconService, TrayIconService>();
                 services.AddSingleton<ISchedulerService, SchedulerService>();
-                services.AddSingleton<SchedulerExecutionService>();
-                services.AddHostedService(sp => sp.GetRequiredService<SchedulerExecutionService>());
+                //services.AddSingleton<SchedulerExecutionService>();
+                //services.AddHostedService(sp => sp.GetRequiredService<SchedulerExecutionService>());
                 services.AddSingleton<IConfigurationService, ConfigurationService>();
                 services.AddSingleton<ITcpPortService, TcpPortService>();
                 services.AddHttpClient<ISystemCheckService, SystemCheckService>();

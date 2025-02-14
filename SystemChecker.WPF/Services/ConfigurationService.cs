@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using SystemChecker.Core.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace SystemChecker.WPF.Services;
 
@@ -13,11 +14,16 @@ public class ConfigurationService : IConfigurationService
 {
     private readonly string _configPath;
     private readonly IConfiguration _configuration;
+    private readonly JsonSerializerOptions _jsonOptions;
+    public event EventHandler ConfigurationChanged;
+    private readonly ILogger<ConfigurationService> _logger;
 
-    public ConfigurationService(IConfiguration configuration)
+    public ConfigurationService(IConfiguration configuration, ILogger<ConfigurationService> logger)
     {
         _configuration = configuration;
         _configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json");
+        _jsonOptions = new JsonSerializerOptions { WriteIndented = true };
+        _logger = logger;
     }
 
     public string GetCurrentSchedule()
@@ -32,60 +38,94 @@ public class ConfigurationService : IConfigurationService
         return services.ToList();
     }
 
-    public async Task UpdateConfiguration(string cronExpression, List<string> services)
-    {
-        // Read existing file
-        var jsonString = await File.ReadAllTextAsync(_configPath);
-        var configObject = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonString);
-
-        // Update schedule
-        var schedulerSettings = new
-        {
-            CheckSchedule = cronExpression
-        };
-        var schedulerJson = JsonSerializer.Serialize(schedulerSettings);
-
-        // Update services
-        var serviceSettings = new
-        {
-            ServicesToMonitor = services.ToArray()
-        };
-        var serviceJson = JsonSerializer.Serialize(serviceSettings);
-
-        // Update configuration object
-        configObject["SchedulerSettings"] = JsonDocument.Parse(schedulerJson).RootElement;
-        configObject["ServiceSettings"] = JsonDocument.Parse(serviceJson).RootElement;
-
-        // Save updated file
-        var options = new JsonSerializerOptions { WriteIndented = true };
-        var updatedJson = JsonSerializer.Serialize(configObject, options);
-        await File.WriteAllTextAsync(_configPath, updatedJson);
-    }
-
-    public string GetCronExpression()
-    {
-        return _configuration.GetValue<string>("SchedulerSettings:CheckSchedule") ?? "*/5 * * * *"; // default: every 5 minutes
-    }
-
-    public IEnumerable<int> GetMonitoredPorts()
+    public string GetMonitoredPorts()
     {
         var ports = _configuration.GetSection("TcpPortSettings:Ports")
             .Get<int[]>() ?? Array.Empty<int>();
-        return ports;
+        return string.Join(",", ports);
     }
 
     public async Task UpdateMonitoredPortsAsync(IEnumerable<int> ports)
     {
+        var config = await LoadConfigurationFile();
+        var oldPorts = GetMonitoredPorts();
+        UpdateTcpPortSettings(config, string.Join(",", ports));
+        await SaveConfigurationFile(config);
+        
+        _logger.LogInformation(
+            "TCP Ports configuration changed from [{OldPorts}] to [{NewPorts}]", 
+            oldPorts, 
+            string.Join(",", ports));
+        
+        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public async Task UpdateScheduleAsync(string cronExpression)
+    {
+        var config = await LoadConfigurationFile();
+        var oldSchedule = GetCurrentSchedule();
+        UpdateSchedulerSettings(config, cronExpression);
+        await SaveConfigurationFile(config);
+        
+        _logger.LogInformation(
+            "Schedule changed from '{OldSchedule}' to '{NewSchedule}'", 
+            oldSchedule, 
+            cronExpression);
+        
+        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public async Task UpdateMonitoredServicesAsync(List<string> services)
+    {
+        var config = await LoadConfigurationFile();
+        var oldServices = GetMonitoredServices();
+        UpdateServiceSettings(config, services);
+        await SaveConfigurationFile(config);
+        
+        _logger.LogInformation(
+            "Monitored services changed from [{OldServices}] to [{NewServices}]", 
+            string.Join(",", oldServices), 
+            string.Join(",", services));
+        
+        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private async Task<Dictionary<string, JsonElement>> LoadConfigurationFile()
+    {
         var jsonString = await File.ReadAllTextAsync(_configPath);
-        var configObject = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonString);
+        return JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonString) 
+            ?? new Dictionary<string, JsonElement>();
+    }
 
-        var portSettings = new { Ports = ports.ToArray() };
-        var portJson = JsonSerializer.Serialize(portSettings);
+    private async Task SaveConfigurationFile(Dictionary<string, JsonElement> config)
+    {
+        var jsonString = JsonSerializer.Serialize(config, _jsonOptions);
+        await File.WriteAllTextAsync(_configPath, jsonString);
+    }
 
-        configObject["TcpPortSettings"] = JsonDocument.Parse(portJson).RootElement;
+    private void UpdateSchedulerSettings(Dictionary<string, JsonElement> config, string cronExpression)
+    {
+        var settings = new { CheckSchedule = cronExpression };
+        var json = JsonSerializer.Serialize(settings);
+        config["SchedulerSettings"] = JsonDocument.Parse(json).RootElement;
+    }
 
-        var options = new JsonSerializerOptions { WriteIndented = true };
-        var updatedJson = JsonSerializer.Serialize(configObject, options);
-        await File.WriteAllTextAsync(_configPath, updatedJson);
+    private void UpdateServiceSettings(Dictionary<string, JsonElement> config, List<string> services)
+    {
+        var settings = new { ServicesToMonitor = services.ToArray() };
+        var json = JsonSerializer.Serialize(settings);
+        config["ServiceSettings"] = JsonDocument.Parse(json).RootElement;
+    }
+
+    private void UpdateTcpPortSettings(Dictionary<string, JsonElement> config, string tcpPorts)
+    {
+        var ports = tcpPorts.Split(',')
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Select(p => int.Parse(p.Trim()))
+            .ToArray();
+
+        var settings = new { Ports = ports };
+        var json = JsonSerializer.Serialize(settings);
+        config["TcpPortSettings"] = JsonDocument.Parse(json).RootElement;
     }
 } 

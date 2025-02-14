@@ -3,27 +3,34 @@ using System.ServiceProcess;
 using System.Windows.Input;
 using SystemChecker.Core.Interfaces;
 using SystemChecker.WPF.Commands;
+using System.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace SystemChecker.WPF.ViewModels;
 
 public class ConfigurationViewModel : ViewModelBase
 {
     private readonly IConfigurationService _configService;
+    private readonly ILogger<ConfigurationViewModel> _logger;
     private string _cronExpression;
     private string _validationMessage;
     private string _selectedService;
     private string _newServiceName;
     private ObservableCollection<string> _monitoredServices;
+    private string _tcpPorts;
 
-    public ConfigurationViewModel(IConfigurationService configService)
+    public ConfigurationViewModel(
+        IConfigurationService configService,
+        ILogger<ConfigurationViewModel> logger)
     {
         _configService = configService;
+        _logger = logger;
 
         // Load the initial settings
         LoadInitialConfiguration();
 
         SaveCommand = new AsyncRelayCommand(SaveConfiguration, CanSaveConfiguration);
-        ValidateCommand = new RelayCommand(ValidateCronExpression);
+        ValidateCronExpressionCommand = new RelayCommand(ValidateCronExpression);
         AddServiceCommand = new RelayCommand(AddService, CanAddService);
         RemoveServiceCommand = new RelayCommand(RemoveService, CanRemoveService);
     }
@@ -40,8 +47,9 @@ public class ConfigurationViewModel : ViewModelBase
             _monitoredServices = new ObservableCollection<string>(_configService.GetMonitoredServices());
             OnPropertyChanged(nameof(MonitoredServices));
 
-            // Validate the initial CRON expression
-            ValidateCronExpression();
+            // Load the monitored tcp ports list
+            _tcpPorts = _configService.GetMonitoredPorts();
+            OnPropertyChanged(nameof(TcpPorts));
 
             // Notify that the settings were loaded
             ValidationMessage = "Settings loaded successfully!";
@@ -101,8 +109,21 @@ public class ConfigurationViewModel : ViewModelBase
         private set => SetField(ref _validationMessage, value);
     }
 
+    public string TcpPorts
+    {
+        get => _tcpPorts;
+        set
+        {
+            if (SetField(ref _tcpPorts, value))
+            {
+                ValidateTcpPorts();
+                (SaveCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
     public ICommand SaveCommand { get; }
-    public ICommand ValidateCommand { get; }
+    public ICommand ValidateCronExpressionCommand { get; }
     public ICommand AddServiceCommand { get; }
     public ICommand RemoveServiceCommand { get; }
 
@@ -166,15 +187,25 @@ public class ConfigurationViewModel : ViewModelBase
     {
         try
         {
-            await _configService.UpdateConfiguration(
-                _cronExpression,
-                MonitoredServices.ToList());
+            // Update schedule
+            await _configService.UpdateScheduleAsync(_cronExpression);
+
+            // Update services
+            await _configService.UpdateMonitoredServicesAsync(_monitoredServices.ToList());
+
+            // Update TCP ports
+            await _configService.UpdateMonitoredPortsAsync(
+                _tcpPorts.Split(',')
+                    .Where(p => !string.IsNullOrWhiteSpace(p))
+                    .Select(p => int.Parse(p.Trim())));
 
             ValidationMessage = "Settings saved successfully!";
+            _logger.LogInformation("All configuration settings updated successfully");
         }
         catch (Exception ex)
         {
-            ValidationMessage = $"Error saving: {ex.Message}";
+            ValidationMessage = $"Error saving settings: {ex.Message}";
+            _logger.LogError(ex, "Error saving configuration settings");
         }
     }
 
@@ -189,6 +220,30 @@ public class ConfigurationViewModel : ViewModelBase
         catch (Exception ex)
         {
             ValidationMessage = $"Invalid CRON expression: {ex.Message}";
+        }
+    }
+
+    private void ValidateTcpPorts()
+    {
+        if (!string.IsNullOrEmpty(_tcpPorts))
+        {
+            var ports = _tcpPorts.Split(",");
+            var invalidPorts = new List<string>();
+            foreach (var port in ports) {
+                if (!int.TryParse(port, out var portNumber))
+                {
+                    invalidPorts.Add(port);
+                }
+            }
+
+            if (invalidPorts.Any())
+            {
+                ValidationMessage = $"Invalid TCP Ports: `{string.Join(",", invalidPorts)}`";
+            }
+            else
+            {
+                ValidationMessage = "TCP Ports set successfully";
+            }
         }
     }
 }

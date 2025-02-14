@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SystemChecker.Core.Interfaces;
+using SystemChecker.Core.Services;
 using SystemChecker.Infrastructure.Services;
 using SystemChecker.Infrastructure.Settings;
 
@@ -28,8 +29,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<INetworkChecker, NetworkChecker>();
         services.AddSingleton<IDiskChecker, DiskChecker>();
         services.AddSingleton<IResourceChecker, ResourceChecker>();
-        services.AddSingleton<ITcpPortChecker, TcpPortChecker>();
         services.AddSingleton<IFolderMonitor, FolderMonitor>();
+        services.AddSingleton<IMessagingCenter, MessagingCenter>();
+        services.AddHostedService<SchedulerExecutionService>();
 
         return services;
     }
