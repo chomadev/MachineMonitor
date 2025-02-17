@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SystemChecker.Core.Interfaces;
 using Microsoft.Extensions.Logging;
+using SystemChecker.Infrastructure.Settings;
 
 namespace SystemChecker.WPF.Services;
 
@@ -86,6 +87,30 @@ public class ConfigurationService : IConfigurationService
             "Monitored services changed from [{OldServices}] to [{NewServices}]", 
             string.Join(",", oldServices), 
             string.Join(",", services));
+        
+        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    public FolderMonitorSettings GetFolderMonitorSettings()
+    {
+        var settings = _configuration.GetSection("FolderMonitorSettings").Get<FolderMonitorSettings>();
+        return settings ?? new FolderMonitorSettings();
+    }
+
+    public async Task UpdateFolderMonitorSettingsAsync(FolderMonitorSettings settings)
+    {
+        var config = await LoadConfigurationFile();
+        var oldSettings = GetFolderMonitorSettings();
+        
+        var json = JsonSerializer.Serialize(settings);
+        config["FolderMonitorSettings"] = JsonDocument.Parse(json).RootElement;
+        
+        await SaveConfigurationFile(config);
+        
+        _logger.LogInformation(
+            "Folder monitor settings updated. Folders: [{Folders}], Extensions: [{Extensions}]",
+            string.Join(",", settings.FoldersToMonitor),
+            string.Join(",", settings.FileExtensionsToMonitor));
         
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }

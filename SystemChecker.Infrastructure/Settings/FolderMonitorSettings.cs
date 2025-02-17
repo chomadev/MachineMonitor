@@ -2,5 +2,7 @@ namespace SystemChecker.Infrastructure.Settings;
 
 public class FolderMonitorSettings
 {
-    public string[] FoldersToMonitor { get; set; } = Array.Empty<string>();
+    public List<string> FoldersToMonitor { get; set; } = new();
+    public string[] FileExtensionsToMonitor { get; set; } = new[] { ".txt", ".log", ".json", ".xml" };
+    public bool IncludeSubdirectories { get; set; } = true;
 } 

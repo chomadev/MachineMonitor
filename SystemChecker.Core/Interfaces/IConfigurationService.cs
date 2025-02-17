@@ -11,4 +11,7 @@ public interface IConfigurationService
     Task UpdateMonitoredPortsAsync(IEnumerable<int> ports);
     
     event EventHandler ConfigurationChanged;
+    
+    FolderMonitorSettings GetFolderMonitorSettings();
+    Task UpdateFolderMonitorSettingsAsync(FolderMonitorSettings settings);
 }

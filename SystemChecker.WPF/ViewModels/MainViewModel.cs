@@ -18,13 +18,15 @@ public class MainViewModel : ViewModelBase, IDisposable
     private SystemCheck? _lastCheckResult;
     private readonly TcpPortsViewModel _tcpPortsViewModel;
     private readonly LogsViewModel _logsViewModel;
+    private readonly FolderMonitorViewModel _folderMonitorViewModel;
 
     public MainViewModel(
         ISystemCheckService systemCheckService,
         IMessagingCenter messagingCenter,
         ConfigurationViewModel configViewModel,
         TcpPortsViewModel tcpPortsViewModel,
-        LogsViewModel logsViewModel)
+        LogsViewModel logsViewModel,
+        FolderMonitorViewModel folderMonitorViewModel)
     {
         _systemCheckService = systemCheckService;
         _messagingCenter = messagingCenter;
@@ -32,6 +34,7 @@ public class MainViewModel : ViewModelBase, IDisposable
         _lastCheckTime = "None check performed";
         _tcpPortsViewModel = tcpPortsViewModel;
         _logsViewModel = logsViewModel;
+        _folderMonitorViewModel = folderMonitorViewModel;
 
         CheckNowCommand = new AsyncRelayCommand(PerformCheck, () => !IsChecking);
 
@@ -87,6 +90,8 @@ public class MainViewModel : ViewModelBase, IDisposable
     public TcpPortsViewModel TcpPortsViewModel => _tcpPortsViewModel;
 
     public LogsViewModel LogsViewModel => _logsViewModel;
+
+    public FolderMonitorViewModel FolderMonitorViewModel => _folderMonitorViewModel;
 
     private async Task PerformCheck()
     {

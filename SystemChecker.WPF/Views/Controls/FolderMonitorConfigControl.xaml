@@ -1,0 +1,61 @@
+<UserControl x:Class="SystemChecker.WPF.Views.Controls.FolderMonitorConfigControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d">
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <DockPanel Grid.Row="0" Margin="0,0,0,10">
+            <TextBlock Text="Monitored Folders" FontWeight="Bold" FontSize="14"/>
+            <Button Content="Add Folder" 
+                    Command="{Binding AddFolderCommand}"
+                    DockPanel.Dock="Right"
+                    Padding="10,5"/>
+        </DockPanel>
+
+        <!-- Folders List -->
+        <ListBox Grid.Row="1" 
+                 ItemsSource="{Binding MonitoredFolders}"
+                 SelectedItem="{Binding SelectedFolder}"
+                 Margin="0,0,0,10">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding Path}"/>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <!-- Settings -->
+        <StackPanel Grid.Row="2" Margin="0,0,0,10">
+            <CheckBox Content="Include Subdirectories" 
+                      IsChecked="{Binding IncludeSubdirectories}"
+                      Margin="0,0,0,5"/>
+            
+            <TextBlock Text="File Extensions to Monitor (comma separated):" 
+                      Margin="0,5"/>
+            <TextBox Text="{Binding FileExtensions, UpdateSourceTrigger=PropertyChanged}"
+                     Margin="0,0,0,10"/>
+        </StackPanel>
+
+        <!-- Action Buttons -->
+        <StackPanel Grid.Row="3" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right">
+            <Button Content="Remove Selected"
+                    Command="{Binding RemoveFolderCommand}"
+                    Margin="0,0,10,0"
+                    Padding="10,5"/>
+            <Button Content="Save Changes"
+                    Command="{Binding SaveCommand}"
+                    Padding="10,5"/>
+        </StackPanel>
+    </Grid>
+</UserControl> 

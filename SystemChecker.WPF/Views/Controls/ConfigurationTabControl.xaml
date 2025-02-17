@@ -1,6 +1,7 @@
 <UserControl x:Class="SystemChecker.WPF.Views.Controls.ConfigurationTabControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:SystemChecker.WPF.Views.Controls">
     <Grid Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -97,5 +98,10 @@
                     HorizontalAlignment="Right"
                     Padding="20,5"/>
         </StackPanel>
+
+        <!-- Add this to the existing TabControl -->
+        <TabItem Header="Folder Monitor">
+            <local:FolderMonitorConfigControl DataContext="{Binding FolderMonitorViewModel}"/>
+        </TabItem>
     </Grid>
 </UserControl> 

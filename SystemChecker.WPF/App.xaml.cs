@@ -61,6 +61,11 @@ public partial class App : Application
                 services.AddSingleton<MainWindow>();
                 services.AddSingleton<TcpPortsViewModel>();
                 services.AddSingleton<LogsViewModel>();
+
+                // New configuration section
+                services.Configure<FolderMonitorSettings>(
+                    context.Configuration.GetSection(nameof(FolderMonitorSettings)));
+                services.AddSingleton<FolderMonitorViewModel>();
             })
             .Build();
     }
