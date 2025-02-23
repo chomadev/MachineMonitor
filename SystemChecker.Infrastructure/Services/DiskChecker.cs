@@ -15,7 +15,7 @@ public class DiskChecker : IDiskChecker
             .Where(d => d.IsReady)
             .Select(d => new DiskStatus
             {
-                DriveLetter = d.Name,
+                Name = d.Name,
                 TotalSpace = d.TotalSize,
                 FreeSpace = d.AvailableFreeSpace,
                 UsagePercentage = (double)(d.TotalSize - d.AvailableFreeSpace) / d.TotalSize * 100

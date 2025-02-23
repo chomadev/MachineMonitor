@@ -24,7 +24,7 @@ public class DiskCheckerTests
         
         foreach (var disk in result)
         {
-            Assert.NotNull(disk.DriveLetter);
+            Assert.NotNull(disk.Name);
             Assert.True(disk.TotalSpace > 0);
             Assert.True(disk.UsagePercentage >= 0 && disk.UsagePercentage <= 100);
         }
