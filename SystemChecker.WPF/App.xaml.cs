@@ -60,6 +60,8 @@ public partial class App : Application
                 services.AddSingleton<MainViewModel>();
                 services.AddSingleton<MainWindow>();
                 services.AddSingleton<TcpPortsViewModel>();
+                services.AddSingleton<ServicesViewModel>();
+                services.AddSingleton<SystemResourcesViewModel>();
                 services.AddSingleton<LogsViewModel>();
             })
             .Build();

@@ -34,11 +34,11 @@
 
         <TabControl Grid.Row="2">
             <TabItem Header="Services">
-                <controls:ServicesTabControl DataContext="{Binding}"/>
+                <controls:ServicesTabControl DataContext="{Binding ServicesViewModel}"/>
             </TabItem>
 
-            <TabItem Header="CPU/Memory">
-                <controls:SystemResourcesTabControl DataContext="{Binding}"/>
+            <TabItem Header="System Resources">
+                <controls:SystemResourcesTabControl DataContext="{Binding SystemResourcesViewModel}"/>
             </TabItem>
 
             <TabItem Header="TCP Ports">

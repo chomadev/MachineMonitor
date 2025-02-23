@@ -1,9 +1,7 @@
-using System.Windows;
 using System.Windows.Input;
 using SystemChecker.Core.Interfaces;
 using SystemChecker.Core.Models;
 using SystemChecker.WPF.Commands;
-using SystemChecker.WPF.Services;
 
 namespace SystemChecker.WPF.ViewModels;
 
@@ -11,19 +9,22 @@ public class MainViewModel : ViewModelBase, IDisposable
 {
     private readonly ISystemCheckService _systemCheckService;
     private readonly IMessagingCenter _messagingCenter;
-    private SystemCheck _lastCheck;
+    private SystemCheck? _lastCheck;
     private bool _isChecking;
     private ConfigurationViewModel _configViewModel;
     private string _lastCheckTime;
-    private SystemCheck? _lastCheckResult;
     private readonly TcpPortsViewModel _tcpPortsViewModel;
     private readonly LogsViewModel _logsViewModel;
+    private readonly ServicesViewModel _servicesViewModel;
+    private readonly SystemResourcesViewModel _systemResourcesViewModel;
 
     public MainViewModel(
         ISystemCheckService systemCheckService,
         IMessagingCenter messagingCenter,
         ConfigurationViewModel configViewModel,
         TcpPortsViewModel tcpPortsViewModel,
+        ServicesViewModel servicesViewModel,
+        SystemResourcesViewModel systemResourcesViewModel,
         LogsViewModel logsViewModel)
     {
         _systemCheckService = systemCheckService;
@@ -31,6 +32,8 @@ public class MainViewModel : ViewModelBase, IDisposable
         _configViewModel = configViewModel;
         _lastCheckTime = "None check performed";
         _tcpPortsViewModel = tcpPortsViewModel;
+        _servicesViewModel = servicesViewModel;
+        _systemResourcesViewModel = systemResourcesViewModel;
         _logsViewModel = logsViewModel;
 
         CheckNowCommand = new AsyncRelayCommand(PerformCheck, () => !IsChecking);
@@ -46,14 +49,17 @@ public class MainViewModel : ViewModelBase, IDisposable
         private set => SetField(ref _configViewModel, value);
     }
 
-    public SystemCheck LastCheck
+    public SystemCheck? LastCheck
     {
         get => _lastCheck;
         private set
         {
             if (SetField(ref _lastCheck, value))
             {
-                OnPropertyChanged(nameof(LastCheck.Services));
+                if (value != null)
+                {
+                    LastCheckTime = value.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss");
+                }
             }
         }
     }
@@ -76,15 +82,13 @@ public class MainViewModel : ViewModelBase, IDisposable
         private set => SetField(ref _lastCheckTime, value);
     }
 
-    public SystemCheck? LastCheckResult
-    {
-        get => _lastCheckResult;
-        private set => SetField(ref _lastCheckResult, value);
-    }
-
     public ICommand CheckNowCommand { get; }
 
     public TcpPortsViewModel TcpPortsViewModel => _tcpPortsViewModel;
+
+    public ServicesViewModel ServicesViewModel => _servicesViewModel;
+
+    public SystemResourcesViewModel SystemResourcesViewModel => _systemResourcesViewModel;
 
     public LogsViewModel LogsViewModel => _logsViewModel;
 
@@ -93,9 +97,9 @@ public class MainViewModel : ViewModelBase, IDisposable
         try
         {
             IsChecking = true;
-            LastCheck = await _systemCheckService.PerformSystemCheckAsync();
-            await _systemCheckService.PushCheckResultAsync(LastCheck);
-            LastCheckTime = $"Last check: {DateTime.Now:yyyy/MM/dd HH:mm:ss}";
+            var check = await _systemCheckService.PerformSystemCheckAsync();
+            LastCheck = check;
+            await _systemCheckService.PushCheckResultAsync(check);
         }
         finally
         {
@@ -105,8 +109,7 @@ public class MainViewModel : ViewModelBase, IDisposable
 
     private void OnSystemCheckCompleted(SystemCheck check)
     {
-        LastCheckResult = check;
-        LastCheckTime = check.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss");
+        LastCheck = check;
         IsChecking = false;
     }
 

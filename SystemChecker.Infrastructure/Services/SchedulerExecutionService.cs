@@ -14,6 +14,7 @@ namespace SystemChecker.Infrastructure.Services
         private readonly ISystemCheckService _systemCheckService;
         private readonly IMessagingCenter _messagingCenter;
         private readonly IConfigurationService _configService;
+        private CronExpression _cronExpression;
 
         public SchedulerExecutionService(
             ILogger<SchedulerExecutionService> logger,
@@ -25,6 +26,17 @@ namespace SystemChecker.Infrastructure.Services
             _systemCheckService = systemCheckService;
             _messagingCenter = messagingCenter;
             _configService = configService;
+            
+            // Inicializa a expressão CRON
+            _cronExpression = CronExpression.Parse(_configService.GetCurrentSchedule());
+            
+            // Assina mudanças de configuração
+            _configService.ConfigurationChanged += (_, _) =>
+            {
+                var newSchedule = _configService.GetCurrentSchedule();
+                _cronExpression = CronExpression.Parse(newSchedule);
+                _logger.LogInformation("Schedule updated to: {Schedule}", newSchedule);
+            };
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -33,6 +45,7 @@ namespace SystemChecker.Infrastructure.Services
             {
                 try
                 {
+                    _messagingCenter.Publish<object>(null, "SystemCheckStarted");
                     var systemCheck = await _systemCheckService.PerformSystemCheckAsync();
                     _messagingCenter.Publish(systemCheck, "SystemCheckCompleted");
                     await _systemCheckService.PushCheckResultAsync(systemCheck);
@@ -51,15 +64,15 @@ namespace SystemChecker.Infrastructure.Services
         {
             try
             {
-                var cronExpression = CronExpression.Parse(_configService.GetCurrentSchedule());
-                var nextRun = cronExpression.GetNextOccurrence(DateTime.UtcNow);
+                var nextRun = _cronExpression.GetNextOccurrence(DateTime.UtcNow);
                 
                 if (nextRun.HasValue)
                 {
                     var delay = nextRun.Value - DateTime.UtcNow;
                     if (delay > TimeSpan.Zero)
                     {
-                        _logger.LogInformation("Next check scheduled for: {nextRun}", nextRun.Value.ToLocalTime());
+                        _logger.LogInformation("Next check scheduled for: {nextRun}", 
+                            nextRun.Value.ToLocalTime());
                         await Task.Delay(delay, stoppingToken);
                     }
                 }
