@@ -76,7 +76,10 @@ public class SystemCheckService : ISystemCheckService
             // Network Check
             _logger.LogInformation("Starting network check...");
             systemCheck.Network = await _networkChecker.CheckNetworkAsync();
-            _logger.LogInformation("Network check completed");
+            _logger.LogInformation("Network check completed: Connected={Connected}, HasInternet={HasInternet}, MonitoredIPs={IPs}", 
+                systemCheck.Network.IsConnected, 
+                systemCheck.Network.HasInternetAccess,
+                string.Join(",", _configService.GetMonitoredIpAddresses()));
 
             // TCP Ports Check - uses current configuration via TcpPortService
             _logger.LogInformation("Starting TCP ports check...");

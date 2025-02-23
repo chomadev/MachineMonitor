@@ -4,8 +4,8 @@
     
     <converters:MessageColorConverter x:Key="MessageColorConverter"/>
     <converters:ServiceStatusColorConverter x:Key="ServiceStatusColorConverter"/>
-    <converters:ServiceRunningColorConverter x:Key="ServiceRunningColorConverter"/>
-    <converters:ServiceRunningTextConverter x:Key="ServiceRunningTextConverter"/>
+    <converters:IsRunningColorConverter x:Key="IsRunningColorConverter"/>
+    <converters:BooleanToTextConverter x:Key="BooleanToTextConverter"/>
     <converters:LogLevelColorConverter x:Key="LogLevelColorConverter"/>
     
 </ResourceDictionary> 

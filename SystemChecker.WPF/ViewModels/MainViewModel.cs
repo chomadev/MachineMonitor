@@ -9,31 +9,37 @@ public class MainViewModel : ViewModelBase, IDisposable
 {
     private readonly ISystemCheckService _systemCheckService;
     private readonly IMessagingCenter _messagingCenter;
+    private readonly IConfigurationService _configService;
     private SystemCheck? _lastCheck;
     private bool _isChecking;
     private ConfigurationViewModel _configViewModel;
     private string _lastCheckTime;
     private readonly TcpPortsViewModel _tcpPortsViewModel;
-    private readonly LogsViewModel _logsViewModel;
     private readonly ServicesViewModel _servicesViewModel;
     private readonly SystemResourcesViewModel _systemResourcesViewModel;
+    private readonly NetworkViewModel _networkViewModel;
+    private readonly LogsViewModel _logsViewModel;
 
     public MainViewModel(
         ISystemCheckService systemCheckService,
         IMessagingCenter messagingCenter,
+        IConfigurationService configService,
         ConfigurationViewModel configViewModel,
         TcpPortsViewModel tcpPortsViewModel,
         ServicesViewModel servicesViewModel,
+        NetworkViewModel networkViewModel,
         SystemResourcesViewModel systemResourcesViewModel,
         LogsViewModel logsViewModel)
     {
         _systemCheckService = systemCheckService;
         _messagingCenter = messagingCenter;
+        _configService = configService;
         _configViewModel = configViewModel;
         _lastCheckTime = "None check performed";
         _tcpPortsViewModel = tcpPortsViewModel;
         _servicesViewModel = servicesViewModel;
         _systemResourcesViewModel = systemResourcesViewModel;
+        _networkViewModel = networkViewModel;
         _logsViewModel = logsViewModel;
 
         CheckNowCommand = new AsyncRelayCommand(PerformCheck, () => !IsChecking);
@@ -41,6 +47,13 @@ public class MainViewModel : ViewModelBase, IDisposable
         // Subscribe to messages instead of direct events
         _messagingCenter.Subscribe<SystemCheck>(this, "SystemCheckCompleted", OnSystemCheckCompleted);
         _messagingCenter.Subscribe<object>(this, "SystemCheckStarted", _ => OnSystemCheckStarted());
+
+        // Subscribe to configuration changes
+        _configService.ConfigurationChanged += async (s, e) =>
+        {
+            // Força um novo check quando a configuração mudar
+            await PerformCheck();
+        };
     }
 
     public ConfigurationViewModel ConfigViewModel
@@ -88,6 +101,8 @@ public class MainViewModel : ViewModelBase, IDisposable
 
     public ServicesViewModel ServicesViewModel => _servicesViewModel;
 
+    public NetworkViewModel NetworkViewModel => _networkViewModel;
+
     public SystemResourcesViewModel SystemResourcesViewModel => _systemResourcesViewModel;
 
     public LogsViewModel LogsViewModel => _logsViewModel;
@@ -97,9 +112,14 @@ public class MainViewModel : ViewModelBase, IDisposable
         try
         {
             IsChecking = true;
+            _messagingCenter.Publish(new SystemCheck(), "SystemCheckStarted");
+            
             var check = await _systemCheckService.PerformSystemCheckAsync();
             LastCheck = check;
             await _systemCheckService.PushCheckResultAsync(check);
+            
+            _messagingCenter.Publish(check, "SystemCheckCompleted");
+            LastCheckTime = $"Last check: {DateTime.Now:yyyy/MM/dd HH:mm:ss}";
         }
         finally
         {

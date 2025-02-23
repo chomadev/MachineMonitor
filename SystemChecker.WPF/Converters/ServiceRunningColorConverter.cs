@@ -5,7 +5,7 @@ using System.Windows.Media;
 
 namespace SystemChecker.WPF.Converters;
 
-public class ServiceRunningColorConverter : IValueConverter
+public class IsRunningColorConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {

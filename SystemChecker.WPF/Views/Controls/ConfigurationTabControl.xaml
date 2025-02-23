@@ -7,6 +7,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <!-- Schedule Configuration -->
@@ -85,8 +86,15 @@
                      ToolTip="Enter port numbers separated by commas (e.g.: 80,443,3389)"/>
         </StackPanel>
 
+        <!-- IP Addresses Configuration -->
+        <StackPanel Grid.Row="3" Margin="0,10,0,0">
+            <TextBlock Text="IP Addresses to Monitor (comma separated):" Margin="0,0,0,5"/>
+            <TextBox Text="{Binding ConfigViewModel.MonitoredIpAddresses, UpdateSourceTrigger=PropertyChanged}"
+                     ToolTip="Enter IP addresses separated by commas (e.g.: 8.8.8.8,1.1.1.1)"/>
+        </StackPanel>
+
         <!-- Action Buttons -->
-        <StackPanel Grid.Row="3" Orientation="Vertical">
+        <StackPanel Grid.Row="4" Orientation="Vertical">
             <TextBlock Text="{Binding ConfigViewModel.ValidationMessage}"
                       Foreground="{Binding ConfigViewModel.ValidationMessage, Converter={StaticResource MessageColorConverter}}"
                       TextWrapping="Wrap"

@@ -4,7 +4,7 @@ using System.Windows.Data;
 
 namespace SystemChecker.WPF.Converters;
 
-public class ServiceRunningTextConverter : IValueConverter
+public class BooleanToTextConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {

@@ -18,6 +18,7 @@ public class ConfigurationViewModel : ViewModelBase
     private string _newServiceName;
     private ObservableCollection<string> _monitoredServices;
     private string _tcpPorts;
+    private string _monitoredIpAddresses = string.Empty;
 
     public ConfigurationViewModel(
         IConfigurationService configService,
@@ -27,7 +28,7 @@ public class ConfigurationViewModel : ViewModelBase
         _logger = logger;
 
         // Load the initial settings
-        LoadInitialConfiguration();
+        LoadInitialConfiguration().GetAwaiter().GetResult();
 
         SaveCommand = new AsyncRelayCommand(SaveConfiguration, CanSaveConfiguration);
         ValidateCronExpressionCommand = new RelayCommand(ValidateCronExpression);
@@ -50,6 +51,9 @@ public class ConfigurationViewModel : ViewModelBase
             // Load the monitored tcp ports list
             _tcpPorts = _configService.GetMonitoredPorts();
             OnPropertyChanged(nameof(TcpPorts));
+
+            // Load the monitored IP addresses
+            MonitoredIpAddresses = string.Join(",", _configService.GetMonitoredIpAddresses());
 
             // Notify that the settings were loaded
             ValidationMessage = "Settings loaded successfully!";
@@ -120,6 +124,12 @@ public class ConfigurationViewModel : ViewModelBase
                 (SaveCommand as AsyncRelayCommand)?.RaiseCanExecuteChanged();
             }
         }
+    }
+
+    public string MonitoredIpAddresses
+    {
+        get => _monitoredIpAddresses;
+        set => SetField(ref _monitoredIpAddresses, value);
     }
 
     public ICommand SaveCommand { get; }
@@ -198,6 +208,13 @@ public class ConfigurationViewModel : ViewModelBase
                 _tcpPorts.Split(',')
                     .Where(p => !string.IsNullOrWhiteSpace(p))
                     .Select(p => int.Parse(p.Trim())));
+
+            // Update IP addresses
+            var ipAddresses = MonitoredIpAddresses.Split(',')
+                .Where(ip => !string.IsNullOrWhiteSpace(ip))
+                .Select(ip => ip.Trim())
+                .ToList();
+            await _configService.UpdateMonitoredIpAddressesAsync(ipAddresses);
 
             ValidationMessage = "Settings saved successfully!";
             _logger.LogInformation("All configuration settings updated successfully");

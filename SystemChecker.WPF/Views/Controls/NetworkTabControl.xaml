@@ -1,0 +1,75 @@
+<UserControl x:Class="SystemChecker.WPF.Views.Controls.NetworkTabControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="clr-namespace:SystemChecker.WPF.Converters">
+    
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </UserControl.Resources>
+    <StackPanel>
+        <GroupBox Header="Network Status" Margin="5">
+            <StackPanel>
+                <StackPanel Margin="10">
+                    <TextBlock Margin="0,5">
+                        <Run Text="Internet Connection: "/>
+                        <Run Text="{Binding NetworkStatus.HasInternetAccess, Converter={StaticResource BooleanToTextConverter}}"
+                            Foreground="{Binding NetworkStatus.HasInternetAccess, Converter={StaticResource IsRunningColorConverter}}"/>
+                    </TextBlock>
+                    
+                    <TextBlock Margin="0,5">
+                        <Run Text="Network Connected: "/>
+                        <Run Text="{Binding NetworkStatus.IsConnected, Converter={StaticResource BooleanToTextConverter}}"
+                            Foreground="{Binding NetworkStatus.IsConnected, Converter={StaticResource IsRunningColorConverter}}"/>
+                    </TextBlock>
+                    
+                    <TextBlock Margin="0,5">
+                        <Run Text="IP Address: "/>
+                        <Run Text="{Binding NetworkStatus.IpAddress}"/>
+                    </TextBlock>
+                    
+                    <TextBlock Text="Active Network Interfaces:" 
+                            FontWeight="SemiBold" 
+                            Margin="0,10,0,5"/>
+                    
+                    <ItemsControl ItemsSource="{Binding NetworkStatus.ActiveInterfaces}"
+                                Margin="10,0,0,0">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" Margin="0,2"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+        
+        <GroupBox Header="Monitored IP Addresses" Margin="0,10,0,0">
+            <ItemsControl ItemsSource="{Binding NetworkStatus.MonitoredAddresses}"
+                        Margin="10">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Text="{Binding Address}" 
+                                    Margin="0,0,10,0"/>
+                            
+                            <TextBlock Grid.Column="1" 
+                                    Text="{Binding IsReachable, Converter={StaticResource BooleanToTextConverter}}"
+                                    Foreground="{Binding IsReachable, Converter={StaticResource IsRunningColorConverter}}"/>
+                            
+                            <TextBlock Grid.Column="2" 
+                                    Text="{Binding ResponseTime, StringFormat='{}{0}ms'}"
+                                    Margin="10,0,0,0"
+                                    Visibility="{Binding IsReachable, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </GroupBox>
+    </StackPanel>
+</UserControl> 

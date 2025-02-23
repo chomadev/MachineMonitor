@@ -6,13 +6,12 @@
         <ListView.View>
             <GridView>
                 <GridViewColumn Header="Name" DisplayMemberBinding="{Binding Name}"/>
-                <GridViewColumn Header="Display Name" DisplayMemberBinding="{Binding DisplayName}"/>
                 <GridViewColumn Header="Status" DisplayMemberBinding="{Binding Status}"/>
                 <GridViewColumn Header="Running">
                     <GridViewColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding IsRunning, Converter={StaticResource ServiceRunningTextConverter}}"
-                                     Foreground="{Binding IsRunning, Converter={StaticResource ServiceRunningColorConverter}}"/>
+                            <TextBlock Text="{Binding IsRunning, Converter={StaticResource BooleanToTextConverter}}"
+                                     Foreground="{Binding IsRunning, Converter={StaticResource IsRunningColorConverter}}"/>
                         </DataTemplate>
                     </GridViewColumn.CellTemplate>
                 </GridViewColumn>

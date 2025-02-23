@@ -128,4 +128,50 @@ public class ConfigurationService : IConfigurationService
         var json = JsonSerializer.Serialize(settings);
         config["TcpPortSettings"] = JsonDocument.Parse(json).RootElement;
     }
+
+    public List<string> GetMonitoredIpAddresses()
+    {
+        try
+        {
+            var addresses = _configuration.GetSection("NetworkSettings:IpAddressesToMonitor")
+                .Get<string[]>() ?? Array.Empty<string>();
+            return addresses.ToList();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting monitored IP addresses");
+            return new List<string>();
+        }
+    }
+
+    public async Task UpdateMonitoredIpAddressesAsync(List<string> ipAddresses)
+    {
+        try
+        {
+            var config = await LoadConfigurationFile();
+            var oldAddresses = string.Join(",", GetMonitoredIpAddresses());
+            
+            UpdateNetworkSettings(config, ipAddresses);
+            await SaveConfigurationFile(config);
+            
+            _logger.LogInformation(
+                "Monitored IP addresses changed from [{OldAddresses}] to [{NewAddresses}]", 
+                oldAddresses, 
+                string.Join(",", ipAddresses));
+            
+            ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating monitored IP addresses");
+            throw;
+        }
+    }
+
+    private void UpdateNetworkSettings(Dictionary<string, JsonElement> config, List<string> ipAddresses)
+    {
+        var settings = new { IpAddressesToMonitor = ipAddresses.ToArray() };
+        var json = JsonSerializer.Serialize(settings);
+        config["NetworkSettings"] = JsonDocument.Parse(json).RootElement;
+    }
 } 

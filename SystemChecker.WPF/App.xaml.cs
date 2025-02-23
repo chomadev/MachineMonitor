@@ -63,6 +63,7 @@ public partial class App : Application
                 services.AddSingleton<ServicesViewModel>();
                 services.AddSingleton<SystemResourcesViewModel>();
                 services.AddSingleton<LogsViewModel>();
+                services.AddSingleton<NetworkViewModel>();
             })
             .Build();
     }
