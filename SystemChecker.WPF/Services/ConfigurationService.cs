@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using SystemChecker.Core.Interfaces;
 using Microsoft.Extensions.Logging;
+using SystemChecker.Core.Models;
 
 namespace SystemChecker.WPF.Services;
 
@@ -173,5 +174,53 @@ public class ConfigurationService : IConfigurationService
         var settings = new { IpAddressesToMonitor = ipAddresses.ToArray() };
         var json = JsonSerializer.Serialize(settings);
         config["NetworkSettings"] = JsonDocument.Parse(json).RootElement;
+    }
+
+    public List<FolderMonitorConfig> GetMonitoredFolders()
+    {
+        try
+        {
+            var folders = _configuration.GetSection("FolderMonitorSettings:MonitoredFolders")
+                .Get<List<FolderMonitorConfig>>() ?? new List<FolderMonitorConfig>();
+            
+            _logger.LogInformation("Retrieved {Count} monitored folders from configuration", folders.Count);
+            return folders;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting monitored folders");
+            return new List<FolderMonitorConfig>();
+        }
+    }
+
+    public async Task UpdateMonitoredFoldersAsync(List<FolderMonitorConfig> folders)
+    {
+        try
+        {
+            var config = await LoadConfigurationFile();
+            var oldFolders = string.Join(", ", GetMonitoredFolders().Select(f => f.Path));
+            
+            UpdateFolderMonitorSettings(config, folders);
+            await SaveConfigurationFile(config);
+            
+            _logger.LogInformation(
+                "Monitored folders changed from [{OldFolders}] to [{NewFolders}]", 
+                oldFolders, 
+                string.Join(", ", folders.Select(f => f.Path)));
+            
+            ConfigurationChanged?.Invoke(this, EventArgs.Empty);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating monitored folders");
+            throw;
+        }
+    }
+
+    private void UpdateFolderMonitorSettings(Dictionary<string, JsonElement> config, List<FolderMonitorConfig> folders)
+    {
+        var settings = new { MonitoredFolders = folders };
+        var json = JsonSerializer.Serialize(settings);
+        config["FolderMonitorSettings"] = JsonDocument.Parse(json).RootElement;
     }
 } 

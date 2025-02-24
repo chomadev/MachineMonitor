@@ -19,6 +19,7 @@ public class MainViewModel : ViewModelBase, IDisposable
     private readonly SystemResourcesViewModel _systemResourcesViewModel;
     private readonly NetworkViewModel _networkViewModel;
     private readonly LogsViewModel _logsViewModel;
+    private readonly FolderMonitorViewModel _folderMonitorViewModel;
 
     public MainViewModel(
         ISystemCheckService systemCheckService,
@@ -29,7 +30,8 @@ public class MainViewModel : ViewModelBase, IDisposable
         ServicesViewModel servicesViewModel,
         NetworkViewModel networkViewModel,
         SystemResourcesViewModel systemResourcesViewModel,
-        LogsViewModel logsViewModel)
+        LogsViewModel logsViewModel,
+        FolderMonitorViewModel folderMonitorViewModel)
     {
         _systemCheckService = systemCheckService;
         _messagingCenter = messagingCenter;
@@ -41,6 +43,7 @@ public class MainViewModel : ViewModelBase, IDisposable
         _systemResourcesViewModel = systemResourcesViewModel;
         _networkViewModel = networkViewModel;
         _logsViewModel = logsViewModel;
+        _folderMonitorViewModel = folderMonitorViewModel;
 
         CheckNowCommand = new AsyncRelayCommand(PerformCheck, () => !IsChecking);
 
@@ -106,6 +109,8 @@ public class MainViewModel : ViewModelBase, IDisposable
     public SystemResourcesViewModel SystemResourcesViewModel => _systemResourcesViewModel;
 
     public LogsViewModel LogsViewModel => _logsViewModel;
+
+    public FolderMonitorViewModel FolderMonitorViewModel => _folderMonitorViewModel;
 
     private async Task PerformCheck()
     {

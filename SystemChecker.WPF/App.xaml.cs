@@ -49,8 +49,6 @@ public partial class App : Application
                 // Services
                 services.AddSingleton<ITrayIconService, TrayIconService>();
                 services.AddSingleton<ISchedulerService, SchedulerService>();
-                //services.AddSingleton<SchedulerExecutionService>();
-                //services.AddHostedService(sp => sp.GetRequiredService<SchedulerExecutionService>());
                 services.AddSingleton<IConfigurationService, ConfigurationService>();
                 services.AddSingleton<ITcpPortService, TcpPortService>();
                 services.AddHttpClient<ISystemCheckService, SystemCheckService>();
@@ -64,6 +62,7 @@ public partial class App : Application
                 services.AddSingleton<SystemResourcesViewModel>();
                 services.AddSingleton<LogsViewModel>();
                 services.AddSingleton<NetworkViewModel>();
+                services.AddSingleton<FolderMonitorViewModel>();
             })
             .Build();
     }
@@ -76,12 +75,15 @@ public partial class App : Application
         trayService.Initialize();
 
         // Load initial settings
-        // var configService = _host.Services.GetRequiredService<IConfigurationService>();
         var configViewModel = _host.Services.GetRequiredService<ConfigurationViewModel>();
         await configViewModel.LoadInitialConfiguration();
 
         var mainWindow = _host.Services.GetRequiredService<MainWindow>();
         mainWindow.Show();
+
+        // Perform initial check after window is shown
+        var systemCheckService = _host.Services.GetRequiredService<ISystemCheckService>();
+        await systemCheckService.PerformSystemCheckAsync();
 
         base.OnStartup(e);
     }

@@ -27,4 +27,5 @@ public class SystemCheck
     public MemoryStatus Memory { get; set; }
     public TcpPortStatus[] Ports { get; set; }
     public FolderChangeStatus[] FolderChanges { get; set; }
+    public FolderStatus[]? Folders { get; set; }
 } 

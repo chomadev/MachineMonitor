@@ -5,6 +5,7 @@ using SystemChecker.Core.Interfaces;
 using SystemChecker.WPF.Commands;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using SystemChecker.Core.Models;
 
 namespace SystemChecker.WPF.ViewModels;
 
@@ -19,6 +20,9 @@ public class ConfigurationViewModel : ViewModelBase
     private ObservableCollection<string> _monitoredServices;
     private string _tcpPorts;
     private string _monitoredIpAddresses = string.Empty;
+    private ObservableCollection<FolderMonitorConfig> _monitoredFolders;
+    private string _newFolderPath;
+    private FolderMonitorConfig? _selectedFolder;
 
     public ConfigurationViewModel(
         IConfigurationService configService,
@@ -34,6 +38,9 @@ public class ConfigurationViewModel : ViewModelBase
         ValidateCronExpressionCommand = new RelayCommand(ValidateCronExpression);
         AddServiceCommand = new RelayCommand(AddService, CanAddService);
         RemoveServiceCommand = new RelayCommand(RemoveService, CanRemoveService);
+        AddFolderCommand = new RelayCommand(AddFolder, CanAddFolder);
+        RemoveFolderCommand = new RelayCommand(RemoveFolder, CanRemoveFolder);
+        BrowseFolderCommand = new RelayCommand(BrowseFolder);
     }
 
     public async Task LoadInitialConfiguration()
@@ -54,6 +61,10 @@ public class ConfigurationViewModel : ViewModelBase
 
             // Load the monitored IP addresses
             MonitoredIpAddresses = string.Join(",", _configService.GetMonitoredIpAddresses());
+
+            // Load the monitored folders
+            var folders = _configService.GetMonitoredFolders();
+            MonitoredFolders = new ObservableCollection<FolderMonitorConfig>(folders);
 
             // Notify that the settings were loaded
             ValidationMessage = "Settings loaded successfully!";
@@ -132,10 +143,31 @@ public class ConfigurationViewModel : ViewModelBase
         set => SetField(ref _monitoredIpAddresses, value);
     }
 
+    public ObservableCollection<FolderMonitorConfig> MonitoredFolders
+    {
+        get => _monitoredFolders;
+        set => SetField(ref _monitoredFolders, value);
+    }
+
+    public string NewFolderPath
+    {
+        get => _newFolderPath;
+        set => SetField(ref _newFolderPath, value);
+    }
+
+    public FolderMonitorConfig? SelectedFolder
+    {
+        get => _selectedFolder;
+        set => SetField(ref _selectedFolder, value);
+    }
+
     public ICommand SaveCommand { get; }
     public ICommand ValidateCronExpressionCommand { get; }
     public ICommand AddServiceCommand { get; }
     public ICommand RemoveServiceCommand { get; }
+    public ICommand AddFolderCommand { get; }
+    public ICommand RemoveFolderCommand { get; }
+    public ICommand BrowseFolderCommand { get; }
 
     private bool CanSaveConfiguration()
     {
@@ -193,6 +225,38 @@ public class ConfigurationViewModel : ViewModelBase
         }
     }
 
+    private void BrowseFolder()
+    {
+        var dialog = new System.Windows.Forms.FolderBrowserDialog();
+        if (dialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+        {
+            NewFolderPath = dialog.SelectedPath;
+        }
+    }
+
+    private bool CanAddFolder() => !string.IsNullOrWhiteSpace(NewFolderPath);
+
+    private void AddFolder()
+    {
+        var folder = new FolderMonitorConfig
+        {
+            Path = NewFolderPath,
+            MonitorLastModified = true  // default values
+        };
+        MonitoredFolders.Add(folder);
+        NewFolderPath = string.Empty;
+    }
+
+    private bool CanRemoveFolder() => SelectedFolder != null;
+
+    private void RemoveFolder()
+    {
+        if (SelectedFolder != null)
+        {
+            MonitoredFolders.Remove(SelectedFolder);
+        }
+    }
+
     private async Task SaveConfiguration()
     {
         try
@@ -215,6 +279,9 @@ public class ConfigurationViewModel : ViewModelBase
                 .Select(ip => ip.Trim())
                 .ToList();
             await _configService.UpdateMonitoredIpAddressesAsync(ipAddresses);
+
+            // Update folders
+            await _configService.UpdateMonitoredFoldersAsync(MonitoredFolders.ToList());
 
             ValidationMessage = "Settings saved successfully!";
             _logger.LogInformation("All configuration settings updated successfully");

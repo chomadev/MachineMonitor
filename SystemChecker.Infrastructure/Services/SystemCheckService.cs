@@ -91,6 +91,13 @@ public class SystemCheckService : ISystemCheckService
             _logger.LogInformation("Starting disks check...");
             systemCheck.Disks = (await _diskChecker.CheckDisksAsync()).ToArray();
             _logger.LogInformation("Disks check completed");
+
+            // Folder Monitoring
+            _logger.LogInformation("Starting folder monitoring...");
+            var folders = _configService.GetMonitoredFolders();
+            systemCheck.Folders = await _folderMonitor.CheckFoldersAsync(folders);
+            systemCheck.FolderChanges = _folderMonitor.GetChanges();
+            _logger.LogInformation("Folder monitoring completed. Checked {count} folders", folders.Count);
         }
         catch (Exception ex)
         {

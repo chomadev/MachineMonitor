@@ -15,13 +15,11 @@ namespace SystemChecker.WPF.Services
 
     public class UiLoggerService : ILogger
     {
-        private readonly string _categoryName;
         private readonly ObservableCollection<LogEntry> _logs;
         private const int MaxLogEntries = 1000;
 
-        public UiLoggerService(string categoryName)
+        public UiLoggerService()
         {
-            _categoryName = categoryName;
             _logs = new ObservableCollection<LogEntry>();
         }
 
@@ -50,9 +48,16 @@ namespace SystemChecker.WPF.Services
                     Exception = exception
                 };
 
-                _logs.Insert(0, entry);
+                AddLog(entry);
+            });
+        }
 
-                // Keep a maximum number of logs
+        public void AddLog(LogEntry entry)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                _logs.Insert(0, entry);
+                
                 while (_logs.Count > MaxLogEntries)
                 {
                     _logs.RemoveAt(_logs.Count - 1);

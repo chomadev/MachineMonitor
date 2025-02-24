@@ -1,4 +1,5 @@
 namespace SystemChecker.Core.Interfaces;
+using SystemChecker.Core.Models;
 
 public interface IConfigurationService
 {
@@ -11,6 +12,9 @@ public interface IConfigurationService
     Task UpdateMonitoredServicesAsync(List<string> services);
     Task UpdateMonitoredPortsAsync(IEnumerable<int> ports);
     Task UpdateMonitoredIpAddressesAsync(List<string> ipAddresses);
+    
+    List<FolderMonitorConfig> GetMonitoredFolders();
+    Task UpdateMonitoredFoldersAsync(List<FolderMonitorConfig> folders);
     
     event EventHandler ConfigurationChanged;
 }

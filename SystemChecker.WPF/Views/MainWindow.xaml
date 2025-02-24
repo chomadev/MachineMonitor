@@ -48,11 +48,15 @@
             <TabItem Header="TCP Ports">
                 <controls:TcpPortsControl DataContext="{Binding TcpPortsViewModel}"/>
             </TabItem>
+            
+            <TabItem Header="Folders">
+                <controls:FolderMonitorTabControl DataContext="{Binding FolderMonitorViewModel}"/>
+            </TabItem>
 
             <TabItem Header="Logs">
                 <controls:LogsTabControl DataContext="{Binding LogsViewModel}"/>
             </TabItem>
-            
+
             <TabItem Header="Settings">
                 <controls:ConfigurationTabControl DataContext="{Binding}"/>
             </TabItem>

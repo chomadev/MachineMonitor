@@ -6,14 +6,18 @@ using System.Windows;
 using System.Windows.Input;
 using SystemChecker.WPF.Commands;
 using SystemChecker.WPF.Services;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace SystemChecker.WPF.ViewModels
 {
-    public class LogsViewModel : ViewModelBase
+    public class LogsViewModel : ViewModelBase, IDisposable
     {
         private readonly UiLoggerService _loggerService;
         private LogLevel _selectedLogLevel;
         private ObservableCollection<LogEntry> _filteredLogs;
+        private string _searchText = string.Empty;
+        private readonly IDisposable _subscription;
 
         public LogsViewModel(UiLoggerProvider loggerProvider)
         {
@@ -28,6 +32,9 @@ namespace SystemChecker.WPF.ViewModels
             
             // Load the initial logs
             UpdateFilteredLogs();
+
+            // Subscribe to new log entries
+            _subscription = loggerProvider.Subscribe(OnNewLogEntry);
         }
 
         private void OnLogsCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
@@ -86,9 +93,72 @@ namespace SystemChecker.WPF.ViewModels
             OnPropertyChanged(nameof(FilteredLogs));
         }
 
+        private void OnNewLogEntry(LogEntry entry)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                _loggerService.Logs.Add(entry);
+                if (string.IsNullOrWhiteSpace(SearchText) || 
+                    entry.Message.ToLower().Contains(SearchText.ToLower()))
+                {
+                    FilteredLogs.Add(entry);
+                }
+                
+                // Keep only last 1000 entries
+                while (_loggerService.Logs.Count > 1000)
+                {
+                    _loggerService.Logs.RemoveAt(0);
+                    if (FilteredLogs.Count > 0)
+                    {
+                        FilteredLogs.RemoveAt(0);
+                    }
+                }
+            });
+        }
+
+        public string SearchText
+        {
+            get => _searchText;
+            set
+            {
+                if (SetField(ref _searchText, value))
+                {
+                    FilterLogs();
+                }
+            }
+        }
+
+        private void FilterLogs()
+        {
+            FilteredLogs.Clear();
+            
+            if (string.IsNullOrWhiteSpace(SearchText))
+            {
+                foreach (var log in _loggerService.Logs)
+                {
+                    FilteredLogs.Add(log);
+                }
+                return;
+            }
+
+            var searchTerms = SearchText.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            
+            foreach (var log in _loggerService.Logs)
+            {
+                if (searchTerms.All(term => 
+                    log.Message.ToLower().Contains(term) || 
+                    log.Level.ToString().ToLower().Contains(term) ||
+                    log.Timestamp.ToString("yyyy/MM/dd HH:mm:ss").Contains(term)))
+                {
+                    FilteredLogs.Add(log);
+                }
+            }
+        }
+
         public void Dispose()
         {
             _loggerService.Logs.CollectionChanged -= OnLogsCollectionChanged;
+            _subscription.Dispose();
         }
     }
 } 

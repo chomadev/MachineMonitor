@@ -1,109 +1,134 @@
 <UserControl x:Class="SystemChecker.WPF.Views.Controls.ConfigurationTabControl"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid Margin="10">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel Margin="10">
+            <!-- Schedule Configuration -->
+            <GroupBox Header="Schedule" Margin="0,0,0,10">
+                <Grid Margin="5">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-        <!-- Schedule Configuration -->
-        <GroupBox Header="Schedule" Grid.Row="0" Margin="0,0,0,10">
-            <Grid Margin="5">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" 
+                              Text="CRON Expression for Scheduling"
+                              FontWeight="Bold"
+                              Margin="0,0,0,5"/>
 
-                <TextBlock Grid.Row="0" 
-                          Text="CRON Expression for Scheduling"
-                          FontWeight="Bold"
-                          Margin="0,0,0,5"/>
+                    <TextBox Grid.Row="1" 
+                            Text="{Binding ConfigViewModel.CronExpression, UpdateSourceTrigger=PropertyChanged}"
+                            Margin="0,0,0,5"/>
 
-                <TextBox Grid.Row="1" 
-                        Text="{Binding ConfigViewModel.CronExpression, UpdateSourceTrigger=PropertyChanged}"
-                        Margin="0,0,0,5"/>
+                    <StackPanel Grid.Row="3" Margin="0,5,0,0">
+                        <TextBlock Text="CRON expression examples:" FontStyle="Italic"/>
+                        <TextBlock Text="*/15 * * * * = Every 15 minutes" Margin="10,2,0,0"/>
+                        <TextBlock Text="0 9-17 * * * = Every hour between 9 AM and 5 PM" Margin="10,2,0,0"/>
+                        <TextBlock Text="0 9 * * * = Every day at 9 AM" Margin="10,2,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </GroupBox>
 
-                <Button Grid.Row="2" 
-                        Content="Validate Expression"
-                        Command="{Binding ConfigViewModel.ValidateCronExpressionCommand}"
-                        HorizontalAlignment="Left"
-                        Margin="0,0,0,10"
-                        Padding="10,5"/>
+            <!-- Services Configuration -->
+            <GroupBox Header="Monitored Services" Margin="0,0,0,10">
+                <Grid Margin="5">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="100"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
 
-                <StackPanel Grid.Row="3" Margin="0,5">
-                    <TextBlock Text="CRON expression examples:"/>
-                    <TextBlock Text="*/15 * * * * = Every 15 minutes" Margin="10,2,0,0"/>
-                    <TextBlock Text="0 * * * * = At the start of every hour" Margin="10,2,0,0"/>
-                    <TextBlock Text="0 9-17 * * * = Every hour between 9 AM and 5 PM" Margin="10,2,0,0"/>
-                    <TextBlock Text="0 9 * * * = Every day at 9 AM" Margin="10,2,0,0"/>
-                    <TextBlock Text="0 9 * * 1-5 = Every weekday at 9 AM" Margin="10,2,0,0"/>
-                </StackPanel>
-            </Grid>
-        </GroupBox>
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,5">
+                        <TextBox Text="{Binding ConfigViewModel.NewServiceName, UpdateSourceTrigger=PropertyChanged}"
+                                 Width="200" Margin="0,0,5,0"/>
+                        <Button Content="Add Service"
+                                Command="{Binding ConfigViewModel.AddServiceCommand}"
+                                Padding="10,5"/>
+                    </StackPanel>
 
-        <!-- Services Configuration -->
-        <GroupBox Header="Monitored Services" Grid.Row="1" Margin="0,0,0,10">
-            <Grid Margin="5">
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
+                    <ListBox Grid.Row="1" 
+                             ItemsSource="{Binding ConfigViewModel.MonitoredServices}"
+                             SelectedItem="{Binding ConfigViewModel.SelectedService}"
+                             Margin="0,5"/>
 
-                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,5">
-                    <TextBox Text="{Binding ConfigViewModel.NewServiceName, UpdateSourceTrigger=PropertyChanged}"
-                             Width="200" Margin="0,0,5,0"/>
-                    <Button Content="Add Service"
-                            Command="{Binding ConfigViewModel.AddServiceCommand}"
+                    <Button Grid.Row="2" 
+                            Content="Remove Selected Service"
+                            Command="{Binding ConfigViewModel.RemoveServiceCommand}"
+                            HorizontalAlignment="Right"
+                            Margin="0,5,0,0"
                             Padding="10,5"/>
+                </Grid>
+            </GroupBox>
+
+            <!-- TCP Ports and IP Addresses -->
+            <GroupBox Header="Network Monitoring" Margin="0,0,0,10">
+                <StackPanel Margin="5">
+                    <TextBlock Text="TCP Ports to Monitor (comma separated):" Margin="0,0,0,5"/>
+                    <TextBox Text="{Binding ConfigViewModel.TcpPorts, UpdateSourceTrigger=PropertyChanged}"
+                             Margin="0,0,0,10"
+                             ToolTip="Enter port numbers separated by commas (e.g.: 80,443,3389)"/>
+
+                    <TextBlock Text="IP Addresses to Monitor (comma separated):" Margin="0,0,0,5"/>
+                    <TextBox Text="{Binding ConfigViewModel.MonitoredIpAddresses, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="Enter IP addresses separated by commas (e.g.: 8.8.8.8,1.1.1.1)"/>
                 </StackPanel>
+            </GroupBox>
 
-                <ListBox Grid.Row="1" 
-                         ItemsSource="{Binding ConfigViewModel.MonitoredServices}"
-                         SelectedItem="{Binding ConfigViewModel.SelectedService}"
-                         MinHeight="100"
-                         Margin="0,5"/>
+            <!-- Folder Monitoring Configuration -->
+            <GroupBox Header="Folder Monitoring" Margin="0,0,0,10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="200"/>
+                    </Grid.RowDefinitions>
 
-                <Button Grid.Row="2" 
-                        Content="Remove Selected Service"
-                        Command="{Binding ConfigViewModel.RemoveServiceCommand}"
+                    <StackPanel Orientation="Horizontal" Margin="0,5">
+                        <TextBox Text="{Binding ConfigViewModel.NewFolderPath, UpdateSourceTrigger=PropertyChanged}"
+                                 Width="300" Margin="0,0,5,0"/>
+                        <Button Content="Browse..." 
+                                Command="{Binding ConfigViewModel.BrowseFolderCommand}"
+                                Padding="10,5" Margin="0,0,5,0"/>
+                        <Button Content="Add Folder"
+                                Command="{Binding ConfigViewModel.AddFolderCommand}"
+                                Padding="10,5"/>
+                    </StackPanel>
+
+                    <DataGrid Grid.Row="1" 
+                              ItemsSource="{Binding ConfigViewModel.MonitoredFolders}"
+                              SelectedItem="{Binding ConfigViewModel.SelectedFolder}"
+                              AutoGenerateColumns="False"
+                              Margin="0,5">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Path" 
+                                              Binding="{Binding Path}"
+                                              Width="*"/>
+                            <DataGridCheckBoxColumn Header="Should Be Empty" 
+                                                  Binding="{Binding ShouldBeEmpty}"
+                                                  Width="100"/>
+                            <DataGridCheckBoxColumn Header="Monitor Modified Date" 
+                                                  Binding="{Binding MonitorLastModified}"
+                                                  Width="120"/>
+                            <DataGridCheckBoxColumn Header="Check Zero Bytes" 
+                                                  Binding="{Binding CheckZeroByteFiles}"
+                                                  Width="100"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </GroupBox>
+
+            <!-- Action Buttons -->
+            <StackPanel Margin="0,0,0,10">
+                <TextBlock Text="{Binding ConfigViewModel.ValidationMessage}"
+                          Foreground="{Binding ConfigViewModel.ValidationMessage, Converter={StaticResource MessageColorConverter}}"
+                          TextWrapping="Wrap"
+                          Margin="0,0,0,10"/>
+                
+                <Button Content="Save Settings"
+                        Command="{Binding ConfigViewModel.SaveCommand}"
                         HorizontalAlignment="Right"
-                        Margin="0,5,0,0"
-                        Padding="10,5"/>
-            </Grid>
-        </GroupBox>
-
-        <!-- TCP Ports Configuration -->
-        <StackPanel Grid.Row="2" Margin="0,10,0,0">
-            <TextBlock Text="TCP Ports to Monitor (comma separated):" Margin="0,0,0,5"/>
-            <TextBox Text="{Binding ConfigViewModel.TcpPorts, UpdateSourceTrigger=PropertyChanged}"
-                     ToolTip="Enter port numbers separated by commas (e.g.: 80,443,3389)"/>
+                        Padding="20,5"/>
+            </StackPanel>
         </StackPanel>
-
-        <!-- IP Addresses Configuration -->
-        <StackPanel Grid.Row="3" Margin="0,10,0,0">
-            <TextBlock Text="IP Addresses to Monitor (comma separated):" Margin="0,0,0,5"/>
-            <TextBox Text="{Binding ConfigViewModel.MonitoredIpAddresses, UpdateSourceTrigger=PropertyChanged}"
-                     ToolTip="Enter IP addresses separated by commas (e.g.: 8.8.8.8,1.1.1.1)"/>
-        </StackPanel>
-
-        <!-- Action Buttons -->
-        <StackPanel Grid.Row="4" Orientation="Vertical">
-            <TextBlock Text="{Binding ConfigViewModel.ValidationMessage}"
-                      Foreground="{Binding ConfigViewModel.ValidationMessage, Converter={StaticResource MessageColorConverter}}"
-                      TextWrapping="Wrap"
-                      Margin="0,0,0,10"/>
-            
-            <Button Content="Save Settings"
-                    Command="{Binding ConfigViewModel.SaveCommand}"
-                    HorizontalAlignment="Right"
-                    Padding="20,5"/>
-        </StackPanel>
-    </Grid>
+    </ScrollViewer>
 </UserControl> 
