@@ -26,10 +26,6 @@ public class ApiDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Path).IsRequired();
-            entity.Property(e => e.ZeroByteFiles)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
-                    v => JsonSerializer.Deserialize<string>(v, JsonSerializerOptions.Default) ?? string.Empty);
             
             entity.HasOne(e => e.SystemCheckHistory)
                   .WithMany(h => h.Folders)
@@ -116,11 +112,6 @@ public class ApiDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             
-            entity.Property(e => e.ActiveInterfaces)
-                .HasConversion(
-                    v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
-                    v => JsonSerializer.Deserialize<string>(v, JsonSerializerOptions.Default) ?? string.Empty);
-
             entity.HasOne(e => e.SystemCheckHistory)
                   .WithOne(h => h.Network)
                   .HasForeignKey<NetworkStatus>(e => e.SystemCheckHistoryId)
