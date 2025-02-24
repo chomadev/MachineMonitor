@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SystemChecker.API.Data;
 
@@ -11,9 +12,11 @@ using SystemChecker.API.Data;
 namespace SystemChecker.API.Migrations
 {
     [DbContext(typeof(ApiDbContext))]
-    partial class ApiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250224022354_AddFolderAndNetworkMonitoring")]
+    partial class AddFolderAndNetworkMonitoring
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -251,18 +254,13 @@ namespace SystemChecker.API.Migrations
                     b.Property<bool>("IsReachable")
                         .HasColumnType("bit");
 
-                    b.Property<int>("NetworkStatusId")
-                        .HasColumnType("int");
-
                     b.Property<int>("ResponseTime")
                         .HasColumnType("int");
 
-                    b.Property<int?>("SystemCheckHistoryId")
+                    b.Property<int>("SystemCheckHistoryId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("NetworkStatusId");
 
                     b.HasIndex("SystemCheckHistoryId");
 
@@ -450,17 +448,13 @@ namespace SystemChecker.API.Migrations
 
             modelBuilder.Entity("SystemChecker.API.Models.MonitoredAddress", b =>
                 {
-                    b.HasOne("SystemChecker.API.Models.NetworkStatus", "NetworkStatus")
+                    b.HasOne("SystemChecker.API.Models.SystemCheckHistory", "SystemCheckHistory")
                         .WithMany("MonitoredAddresses")
-                        .HasForeignKey("NetworkStatusId")
+                        .HasForeignKey("SystemCheckHistoryId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SystemChecker.API.Models.SystemCheckHistory", null)
-                        .WithMany("MonitoredAddresses")
-                        .HasForeignKey("SystemCheckHistoryId");
-
-                    b.Navigation("NetworkStatus");
+                    b.Navigation("SystemCheckHistory");
                 });
 
             modelBuilder.Entity("SystemChecker.API.Models.NetworkStatus", b =>
@@ -510,11 +504,6 @@ namespace SystemChecker.API.Migrations
             modelBuilder.Entity("SystemChecker.API.Models.Machine", b =>
                 {
                     b.Navigation("ApiKey");
-                });
-
-            modelBuilder.Entity("SystemChecker.API.Models.NetworkStatus", b =>
-                {
-                    b.Navigation("MonitoredAddresses");
                 });
 
             modelBuilder.Entity("SystemChecker.API.Models.SystemCheckHistory", b =>

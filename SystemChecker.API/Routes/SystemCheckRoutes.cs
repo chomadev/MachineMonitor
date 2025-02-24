@@ -23,6 +23,9 @@ public static class SystemCheckRoutes
             {
                 return Results.Unauthorized();
             }
+            catch (Exception ex) {
+                return Results.BadRequest();
+            }
         })
         .WithName("SaveSystemCheck")
         .WithOpenApi()

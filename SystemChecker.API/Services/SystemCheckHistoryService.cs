@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SystemChecker.API.Data;
 using SystemChecker.API.Models;
+using System.Text.Json;
 
 namespace SystemChecker.API.Services;
 
@@ -48,7 +49,14 @@ public class SystemCheckHistoryService : ISystemCheckHistoryService
             {
                 IsConnected = checkData.Network.IsConnected,
                 HasInternetAccess = checkData.Network.HasInternetAccess,
-                IpAddress = checkData.Network.IpAddress
+                IpAddress = checkData.Network.IpAddress,
+                ActiveInterfaces = JsonSerializer.Serialize(checkData.Network.ActiveInterfaces),
+                MonitoredAddresses = checkData.Network.MonitoredAddresses.Select(a => new MonitoredAddress
+                {
+                    Address = a.Address,
+                    IsReachable = a.IsReachable,
+                    ResponseTime = a.ResponseTime
+                }).ToList()
             },
             Disks = checkData.Disks.Select(d => new DiskStatus
             {
@@ -72,6 +80,23 @@ public class SystemCheckHistoryService : ISystemCheckHistoryService
                 Port = p.Port,
                 IsOpen = p.IsOpen,
                 Service = p.Service
+            }).ToList(),
+            Folders = checkData.Folders.Select(f => new FolderStatus
+            {
+                Path = f.Path,
+                Exists = f.Exists,
+                IsEmpty = f.IsEmpty,
+                LastModified = f.LastModified,
+                HasZeroByteFiles = f.HasZeroByteFiles,
+                IsValid = f.IsValid,
+                ErrorMessage = f.ErrorMessage,
+                ZeroByteFiles = JsonSerializer.Serialize(f.ZeroByteFiles)
+            }).ToList(),
+            FolderChanges = checkData.FolderChanges.Select(f => new FolderChange
+            {
+                Path = f.Path,
+                LastChanged = f.LastChanged,
+                LastChangeType = f.LastChangeType
             }).ToList()
         };
 
@@ -92,10 +117,13 @@ public class SystemCheckHistoryService : ISystemCheckHistoryService
         return await _context.SystemCheckHistory
             .Include(h => h.Services)
             .Include(h => h.Network)
+            .ThenInclude(n => n.MonitoredAddresses)
             .Include(h => h.Disks)
             .Include(h => h.Cpu)
             .Include(h => h.Memory)
             .Include(h => h.Ports)
+            .Include(h => h.Folders)
+            .Include(h => h.FolderChanges)
             .Where(h => h.MachineId == key.MachineId)
             .OrderByDescending(h => h.Timestamp)
             .FirstOrDefaultAsync();
@@ -113,10 +141,13 @@ public class SystemCheckHistoryService : ISystemCheckHistoryService
         var query = _context.SystemCheckHistory
             .Include(h => h.Services)
             .Include(h => h.Network)
+            .ThenInclude(n => n.MonitoredAddresses)
             .Include(h => h.Disks)
             .Include(h => h.Cpu)
             .Include(h => h.Memory)
             .Include(h => h.Ports)
+            .Include(h => h.Folders)
+            .Include(h => h.FolderChanges)
             .Where(h => h.MachineId == key.MachineId);
 
         if (from.HasValue)

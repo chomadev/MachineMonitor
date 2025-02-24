@@ -126,8 +126,8 @@ public class MonitoredAddress
     public string Address { get; set; } = string.Empty;
     public bool IsReachable { get; set; }
     public int ResponseTime { get; set; }
-    public int SystemCheckHistoryId { get; set; }
-    [JsonIgnore] public SystemCheckHistory SystemCheckHistory { get; set; } = null!;
+    public int NetworkStatusId { get; set; }
+    [JsonIgnore] public NetworkStatus NetworkStatus { get; set; } = null!;
 } 
 
 public class NetworkStatus
@@ -138,5 +138,6 @@ public class NetworkStatus
     public string? IpAddress { get; set; }
     public string ActiveInterfaces { get; set; } = string.Empty; // JSON serialized
     public int SystemCheckHistoryId { get; set; }
+    public List<MonitoredAddress> MonitoredAddresses { get; set; } = new();
     [JsonIgnore] public SystemCheckHistory SystemCheckHistory { get; set; } = null!;
 } 

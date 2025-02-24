@@ -1,4 +1,3 @@
-using SystemChecker.API.Models;
 using SystemChecker.API.Services;
 using Microsoft.EntityFrameworkCore;
 using SystemChecker.API.Data;
@@ -27,6 +26,13 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Apply migrations
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApiDbContext>();
+    db.Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
