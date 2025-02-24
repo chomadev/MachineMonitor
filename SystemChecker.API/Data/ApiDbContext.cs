@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SystemChecker.API.Models;
+using System.Text.Json;
 
 namespace SystemChecker.API.Data;
 
@@ -12,9 +13,70 @@ public class ApiDbContext : DbContext
     public DbSet<ApiKey> ApiKeys { get; set; }
     public DbSet<Machine> Machines { get; set; }
     public DbSet<SystemCheckHistory> SystemCheckHistory { get; set; }
+    public DbSet<FolderStatus> FolderStatuses { get; set; }
+    public DbSet<FolderChange> FolderChanges { get; set; }
+    public DbSet<MonitoredAddress> MonitoredAddresses { get; set; }
+    public DbSet<NetworkStatusData> NetworkStatuses { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<FolderStatus>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Path).IsRequired();
+            entity.Property(e => e.ZeroByteFiles)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
+                    v => JsonSerializer.Deserialize<string>(v, JsonSerializerOptions.Default) ?? string.Empty);
+            
+            entity.HasOne(e => e.SystemCheckHistory)
+                  .WithMany(h => h.Folders)
+                  .HasForeignKey(e => e.SystemCheckHistoryId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<FolderChange>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Path).IsRequired();
+            
+            entity.HasOne(e => e.SystemCheckHistory)
+                  .WithMany(h => h.FolderChanges)
+                  .HasForeignKey(e => e.SystemCheckHistoryId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MonitoredAddress>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Address).IsRequired();
+            
+            entity.HasOne(e => e.SystemCheckHistory)
+                  .WithMany(h => h.MonitoredAddresses)
+                  .HasForeignKey(e => e.SystemCheckHistoryId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<NetworkStatusData>()
+            .Property(n => n.ActiveInterfaces)
+            .HasConversion(
+                v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
+                v => JsonSerializer.Deserialize<List<string>>(v, JsonSerializerOptions.Default) ?? new List<string>());
+
+        modelBuilder.Entity<CpuStatusData>(entity =>
+        {
+            entity.HasKey("Id");
+            entity.Property<int>("Id").ValueGeneratedOnAdd();
+        });
+
+        modelBuilder.Entity<MemoryStatusData>(entity =>
+        {
+            entity.HasKey("Id");
+            entity.Property<int>("Id").ValueGeneratedOnAdd();
+        });
+
         modelBuilder.Entity<ApiKey>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -105,6 +167,15 @@ public class ApiDbContext : DbContext
                   .WithMany(h => h.Ports)
                   .HasForeignKey(e => e.SystemCheckHistoryId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<NetworkStatus>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ActiveInterfaces)
+                .HasConversion(
+                    v => JsonSerializer.Serialize(v, JsonSerializerOptions.Default),
+                    v => JsonSerializer.Deserialize<string>(v, JsonSerializerOptions.Default) ?? string.Empty);
         });
     }
 } 

@@ -2,6 +2,7 @@ namespace SystemChecker.API.Models;
 
 public class SystemCheckData
 {
+    public Guid Id { get; set; }
     public DateTime Timestamp { get; set; }
     public List<ServiceStatusData> Services { get; set; } = new();
     public NetworkStatusData? Network { get; set; }
@@ -9,7 +10,22 @@ public class SystemCheckData
     public CpuStatusData? Cpu { get; set; }
     public MemoryStatusData? Memory { get; set; }
     public List<TcpPortStatusData> Ports { get; set; } = new();
+    public List<FolderChangeData> FolderChanges { get; set; } = new();
+    public List<FolderStatusData> Folders { get; set; } = new();
 }
+public class MemoryStatusData
+{
+    public int Id { get; set; }
+    public long TotalPhysicalMemory { get; set; }
+    public long AvailablePhysicalMemory { get; set; }
+    public double UsagePercentage { get; set; }
+}
+public class CpuStatusData
+{
+    public int Id { get; set; }
+    public double UsagePercentage { get; set; }
+    public int ProcessCount { get; set; }
+} 
 
 public class ServiceStatusData
 {
@@ -24,28 +40,46 @@ public class NetworkStatusData
     public bool IsConnected { get; set; }
     public bool HasInternetAccess { get; set; }
     public string? IpAddress { get; set; }
+    public List<string> ActiveInterfaces { get; set; } = new();
+    public List<MonitoredAddressData> MonitoredAddresses { get; set; } = new();
 }
+
+public class MonitoredAddressData
+{
+    public string Address { get; set; } = string.Empty;
+    public bool IsReachable { get; set; }
+    public int ResponseTime { get; set; }
+} 
+
+public class FolderStatusData
+{
+    public int Id { get; set; }
+    public string Path { get; set; } = string.Empty;
+    public bool Exists { get; set; }
+    public bool IsEmpty { get; set; }
+    public DateTime? LastModified { get; set; }
+    public bool HasZeroByteFiles { get; set; }
+    public bool IsValid { get; set; }
+    public string? ErrorMessage { get; set; }
+    public List<string> ZeroByteFiles { get; set; } = new();
+}
+
+public class FolderChangeData
+{
+    public int Id { get; set; }
+    public string Path { get; set; } = string.Empty;
+    public DateTime LastChanged { get; set; }
+    public string LastChangeType { get; set; } = string.Empty;
+} 
 
 public class DiskStatusData
 {
+    public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public long TotalSpace { get; set; }
     public long FreeSpace { get; set; }
     public double UsagePercentage { get; set; }
 }
-
-public class CpuStatusData
-{
-    public double UsagePercentage { get; set; }
-}
-
-public class MemoryStatusData
-{
-    public long TotalPhysicalMemory { get; set; }
-    public long AvailablePhysicalMemory { get; set; }
-    public double UsagePercentage { get; set; }
-}
-
 public class TcpPortStatusData
 {
     public int Port { get; set; }

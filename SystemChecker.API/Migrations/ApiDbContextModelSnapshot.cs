@@ -54,7 +54,7 @@ namespace SystemChecker.API.Migrations
                     b.HasIndex("MachineId")
                         .IsUnique();
 
-                    b.ToTable("ApiKeys");
+                    b.ToTable("ApiKeys", (string)null);
                 });
 
             modelBuilder.Entity("SystemChecker.API.Models.CpuStatus", b =>
@@ -76,7 +76,7 @@ namespace SystemChecker.API.Migrations
                     b.HasIndex("SystemCheckHistoryId")
                         .IsUnique();
 
-                    b.ToTable("CpuStatus");
+                    b.ToTable("CpuStatus", (string)null);
                 });
 
             modelBuilder.Entity("SystemChecker.API.Models.DiskStatus", b =>
@@ -107,7 +107,7 @@ namespace SystemChecker.API.Migrations
 
                     b.HasIndex("SystemCheckHistoryId");
 
-                    b.ToTable("DiskStatus");
+                    b.ToTable("DiskStatus", (string)null);
                 });
 
             modelBuilder.Entity("SystemChecker.API.Models.Machine", b =>
@@ -132,7 +132,7 @@ namespace SystemChecker.API.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Machines");
+                    b.ToTable("Machines", (string)null);
                 });
 
             modelBuilder.Entity("SystemChecker.API.Models.MemoryStatus", b =>
@@ -160,7 +160,7 @@ namespace SystemChecker.API.Migrations
                     b.HasIndex("SystemCheckHistoryId")
                         .IsUnique();
 
-                    b.ToTable("MemoryStatus");
+                    b.ToTable("MemoryStatus", (string)null);
                 });
 
             modelBuilder.Entity("SystemChecker.API.Models.NetworkStatus", b =>
@@ -188,7 +188,7 @@ namespace SystemChecker.API.Migrations
                     b.HasIndex("SystemCheckHistoryId")
                         .IsUnique();
 
-                    b.ToTable("NetworkStatus");
+                    b.ToTable("NetworkStatus", (string)null);
                 });
 
             modelBuilder.Entity("SystemChecker.API.Models.ServiceStatus", b =>
@@ -221,7 +221,7 @@ namespace SystemChecker.API.Migrations
 
                     b.HasIndex("SystemCheckHistoryId");
 
-                    b.ToTable("ServiceStatus");
+                    b.ToTable("ServiceStatus", (string)null);
                 });
 
             modelBuilder.Entity("SystemChecker.API.Models.SystemCheckHistory", b =>
@@ -242,7 +242,7 @@ namespace SystemChecker.API.Migrations
 
                     b.HasIndex("MachineId");
 
-                    b.ToTable("SystemCheckHistory");
+                    b.ToTable("SystemCheckHistory", (string)null);
                 });
 
             modelBuilder.Entity("SystemChecker.API.Models.TcpPortStatus", b =>
@@ -269,7 +269,7 @@ namespace SystemChecker.API.Migrations
 
                     b.HasIndex("SystemCheckHistoryId");
 
-                    b.ToTable("TcpPortStatus");
+                    b.ToTable("TcpPortStatus", (string)null);
                 });
 
             modelBuilder.Entity("SystemChecker.API.Models.ApiKey", b =>
