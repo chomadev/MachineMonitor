@@ -1,6 +1,4 @@
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
-using SystemChecker.API.Models;
+using SystemChecker.API.Models.Dto;
 using SystemChecker.API.Services;
 
 namespace SystemChecker.API.Routes;
@@ -10,21 +8,22 @@ public static class SystemCheckRoutes
     public static void MapSystemCheckRoutes(this WebApplication app)
     {
         app.MapPost("/api/systemcheck", async (
-            SystemCheckData check,
             string apiKey,
-            ISystemCheckHistoryService historyService) =>
+            SystemCheckDto check,
+            ISystemCheckHistoryService service) =>
         {
             try
             {
-                var history = await historyService.SaveCheckAsync(apiKey, check);
-                return Results.Ok(history);
+                var result = await service.SaveCheckAsync(apiKey, check);
+                return Results.Ok(result);
             }
             catch (UnauthorizedAccessException)
             {
                 return Results.Unauthorized();
             }
-            catch (Exception ex) {
-                return Results.BadRequest();
+            catch (Exception ex)
+            {
+                return Results.BadRequest(ex.Message);
             }
         })
         .WithName("SaveSystemCheck")
@@ -33,19 +32,20 @@ public static class SystemCheckRoutes
 
         app.MapGet("/api/systemcheck/latest", async (
             string apiKey,
-            ISystemCheckHistoryService historyService) =>
+            ISystemCheckHistoryService service) =>
         {
             try
             {
-                var latestCheck = await historyService.GetLatestCheckAsync(apiKey);
-                if (latestCheck == null)
-                    return Results.NotFound();
-                    
-                return Results.Ok(latestCheck);
+                var result = await service.GetLatestCheckAsync(apiKey);
+                return result != null ? Results.Ok(result) : Results.NotFound();
             }
             catch (UnauthorizedAccessException)
             {
                 return Results.Unauthorized();
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(ex.Message);
             }
         })
         .WithName("GetLatestSystemCheck")
@@ -56,16 +56,20 @@ public static class SystemCheckRoutes
             string apiKey,
             DateTime? from,
             DateTime? to,
-            ISystemCheckHistoryService historyService) =>
+            ISystemCheckHistoryService service) =>
         {
             try
             {
-                var history = await historyService.GetCheckHistoryAsync(apiKey, from, to);
-                return Results.Ok(history);
+                var result = await service.GetCheckHistoryAsync(apiKey, from, to);
+                return Results.Ok(result);
             }
             catch (UnauthorizedAccessException)
             {
                 return Results.Unauthorized();
+            }
+            catch (Exception ex)
+            {
+                return Results.BadRequest(ex.Message);
             }
         })
         .WithName("GetSystemCheckHistory")

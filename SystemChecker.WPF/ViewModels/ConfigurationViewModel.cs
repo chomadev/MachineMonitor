@@ -13,16 +13,17 @@ public class ConfigurationViewModel : ViewModelBase
 {
     private readonly IConfigurationService _configService;
     private readonly ILogger<ConfigurationViewModel> _logger;
-    private string _cronExpression;
-    private string _validationMessage;
-    private string _selectedService;
-    private string _newServiceName;
-    private ObservableCollection<string> _monitoredServices;
-    private string _tcpPorts;
+    private MachineConfiguration _currentConfig;
+    private string _validationMessage = string.Empty;
+    private string _cronExpression = string.Empty;
+    private string _tcpPorts = string.Empty;
     private string _monitoredIpAddresses = string.Empty;
-    private ObservableCollection<FolderMonitorConfig> _monitoredFolders;
-    private string _newFolderPath;
+    private string _newServiceName = string.Empty;
+    private string _newFolderPath = string.Empty;
+    private string? _selectedService;
     private FolderMonitorConfig? _selectedFolder;
+    private ObservableCollection<string> _monitoredServices = new ObservableCollection<string>();
+    private ObservableCollection<FolderMonitorConfig> _monitoredFolders = new ObservableCollection<FolderMonitorConfig>();
 
     public ConfigurationViewModel(
         IConfigurationService configService,
@@ -30,16 +31,13 @@ public class ConfigurationViewModel : ViewModelBase
     {
         _configService = configService;
         _logger = logger;
+        _currentConfig = new MachineConfiguration();
 
-        // Load the initial settings
-        LoadInitialConfiguration().GetAwaiter().GetResult();
-
-        SaveCommand = new AsyncRelayCommand(SaveConfiguration, CanSaveConfiguration);
-        ValidateCronExpressionCommand = new RelayCommand(ValidateCronExpression);
+        // Commands
+        SaveCommand = new AsyncRelayCommand(SaveConfigurationAsync);
         AddServiceCommand = new RelayCommand(AddService, CanAddService);
         RemoveServiceCommand = new RelayCommand(RemoveService, CanRemoveService);
         AddFolderCommand = new RelayCommand(AddFolder, CanAddFolder);
-        RemoveFolderCommand = new RelayCommand(RemoveFolder, CanRemoveFolder);
         BrowseFolderCommand = new RelayCommand(BrowseFolder);
     }
 
@@ -47,31 +45,30 @@ public class ConfigurationViewModel : ViewModelBase
     {
         try
         {
-            // Load the CRON schedule
-            _cronExpression = _configService.GetCurrentSchedule();
-            OnPropertyChanged(nameof(CronExpression));
+            _currentConfig = await _configService.LoadConfigurationAsync();
+            
+            // Update UI properties from _currentConfig
+            CronExpression = _currentConfig.CheckSchedule;
+            TcpPorts = string.Join(",", _currentConfig.TcpPorts);
+            MonitoredIpAddresses = string.Join(",", _currentConfig.IpAddressesToMonitor);
+            MonitoredServices.Clear();
+            foreach (var service in _currentConfig.ServicesToMonitor)
+            {
+                MonitoredServices.Add(service);
+            }
+            MonitoredFolders.Clear();
+            foreach (var folder in _currentConfig.MonitoredFolders)
+            {
+                MonitoredFolders.Add(folder);
+            }
 
-            // Load the monitored services list
-            _monitoredServices = new ObservableCollection<string>(_configService.GetMonitoredServices());
-            OnPropertyChanged(nameof(MonitoredServices));
-
-            // Load the monitored tcp ports list
-            _tcpPorts = _configService.GetMonitoredPorts();
-            OnPropertyChanged(nameof(TcpPorts));
-
-            // Load the monitored IP addresses
-            MonitoredIpAddresses = string.Join(",", _configService.GetMonitoredIpAddresses());
-
-            // Load the monitored folders
-            var folders = _configService.GetMonitoredFolders();
-            MonitoredFolders = new ObservableCollection<FolderMonitorConfig>(folders);
-
-            // Notify that the settings were loaded
-            ValidationMessage = "Settings loaded successfully!";
+            ValidationMessage = "Configuration loaded successfully";
+            _logger.LogInformation("Configuration loaded successfully");
         }
         catch (Exception ex)
         {
-            ValidationMessage = $"Error loading settings: {ex.Message}";
+            ValidationMessage = $"Error loading configuration: {ex.Message}";
+            _logger.LogError(ex, "Error loading configuration");
         }
     }
 
@@ -257,39 +254,32 @@ public class ConfigurationViewModel : ViewModelBase
         }
     }
 
-    private async Task SaveConfiguration()
+    private async Task SaveConfigurationAsync()
     {
         try
         {
-            // Update schedule
-            await _configService.UpdateScheduleAsync(_cronExpression);
-
-            // Update services
-            await _configService.UpdateMonitoredServicesAsync(_monitoredServices.ToList());
-
-            // Update TCP ports
-            await _configService.UpdateMonitoredPortsAsync(
-                _tcpPorts.Split(',')
-                    .Where(p => !string.IsNullOrWhiteSpace(p))
-                    .Select(p => int.Parse(p.Trim())));
-
-            // Update IP addresses
-            var ipAddresses = MonitoredIpAddresses.Split(',')
+            // Update _currentConfig from UI properties
+            _currentConfig.CheckSchedule = CronExpression;
+            _currentConfig.TcpPorts = TcpPorts.Split(',')
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .Select(p => int.Parse(p.Trim()))
+                .ToList();
+            _currentConfig.IpAddressesToMonitor = MonitoredIpAddresses.Split(',')
                 .Where(ip => !string.IsNullOrWhiteSpace(ip))
                 .Select(ip => ip.Trim())
                 .ToList();
-            await _configService.UpdateMonitoredIpAddressesAsync(ipAddresses);
+            _currentConfig.ServicesToMonitor = MonitoredServices.ToList();
+            _currentConfig.MonitoredFolders = MonitoredFolders.ToList();
 
-            // Update folders
-            await _configService.UpdateMonitoredFoldersAsync(MonitoredFolders.ToList());
+            await _configService.SaveConfigurationAsync(_currentConfig);
 
-            ValidationMessage = "Settings saved successfully!";
-            _logger.LogInformation("All configuration settings updated successfully");
+            ValidationMessage = "Configuration saved successfully";
+            _logger.LogInformation("Configuration saved successfully");
         }
         catch (Exception ex)
         {
-            ValidationMessage = $"Error saving settings: {ex.Message}";
-            _logger.LogError(ex, "Error saving configuration settings");
+            ValidationMessage = $"Error saving configuration: {ex.Message}";
+            _logger.LogError(ex, "Error saving configuration");
         }
     }
 

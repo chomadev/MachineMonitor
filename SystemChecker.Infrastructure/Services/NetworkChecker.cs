@@ -18,6 +18,7 @@ public class NetworkChecker : INetworkChecker
 {
     private readonly IConfigurationService _configService;
     private readonly ILogger<NetworkChecker> _logger;
+    private MachineConfiguration _currentConfig;
 
     public NetworkChecker(
         IConfigurationService configService,
@@ -25,6 +26,26 @@ public class NetworkChecker : INetworkChecker
     {
         _configService = configService;
         _logger = logger;
+        _currentConfig = new MachineConfiguration();
+
+        _configService.ConfigurationChanged += async (_, _) =>
+        {
+            _currentConfig = await _configService.LoadConfigurationAsync();
+            _logger.LogInformation("Network monitoring configuration updated");
+        };
+
+        // Carrega configuração inicial
+        Task.Run(async () =>
+        {
+            try
+            {
+                _currentConfig = await _configService.LoadConfigurationAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading initial configuration");
+            }
+        });
     }
 
     public async Task<NetworkStatus> CheckNetworkAsync()
@@ -37,9 +58,8 @@ public class NetworkChecker : INetworkChecker
             ActiveInterfaces = GetActiveInterfaces()
         };
 
-        // Check monitored IPs in parallel for efficiency
-        var monitoredIps = _configService.GetMonitoredIpAddresses();
-        var tasks = monitoredIps.Select(ip => CheckIpAddressAsync(ip));
+        // Check monitored IPs in parallel
+        var tasks = _currentConfig.IpAddressesToMonitor.Select(ip => CheckIpAddressAsync(ip));
         networkStatus.MonitoredAddresses = (await Task.WhenAll(tasks)).ToArray();
 
         return networkStatus;

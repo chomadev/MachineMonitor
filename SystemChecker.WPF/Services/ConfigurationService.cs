@@ -8,219 +8,136 @@ using System.Linq;
 using SystemChecker.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 using SystemChecker.Core.Models;
+using System.Net.Http.Json;
+using System.Net.Http;
+using SystemChecker.Infrastructure.Settings;
+using SystemChecker.WPF.Models;
+using System.Threading;
 
 namespace SystemChecker.WPF.Services;
 
 public class ConfigurationService : IConfigurationService
 {
-    private readonly string _configPath;
     private readonly IConfiguration _configuration;
-    private readonly JsonSerializerOptions _jsonOptions;
     public event EventHandler ConfigurationChanged;
     private readonly ILogger<ConfigurationService> _logger;
+    private readonly HttpClient _httpClient;
+    private readonly SemaphoreSlim _loadLock = new SemaphoreSlim(1, 1);
+    private bool _isLoading = false;
+    private DateTime _lastLoadTime = DateTime.MinValue;
+    private const int MIN_RELOAD_INTERVAL_MS = 2000; // 2 segundos entre reloads
 
-    public ConfigurationService(IConfiguration configuration, ILogger<ConfigurationService> logger)
+    public ConfigurationService(
+        IConfiguration configuration,
+        IHttpClientFactory httpClientFactory,
+        ILogger<ConfigurationService> logger)
     {
         _configuration = configuration;
-        _configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "appsettings.json");
-        _jsonOptions = new JsonSerializerOptions { WriteIndented = true };
+        _httpClient = httpClientFactory.CreateClient("API");
         _logger = logger;
     }
 
-    public string GetCurrentSchedule()
+    public async Task<MachineConfiguration> LoadConfigurationAsync()
     {
-        return _configuration.GetSection("SchedulerSettings:CheckSchedule").Value ?? "*/1 * * * *";
+        if (_isLoading)
+        {
+            _logger.LogDebug("Configuration load already in progress, waiting...");
+            await _loadLock.WaitAsync();
+            _loadLock.Release();
+            return await GetCachedOrLoadConfigurationAsync();
+        }
+
+        var timeSinceLastLoad = DateTime.UtcNow - _lastLoadTime;
+        if (timeSinceLastLoad.TotalMilliseconds < MIN_RELOAD_INTERVAL_MS)
+        {
+            _logger.LogDebug("Configuration was loaded recently, using cached version");
+            return await GetCachedOrLoadConfigurationAsync();
+        }
+
+        return await GetCachedOrLoadConfigurationAsync();
     }
 
-    public List<string> GetMonitoredServices()
+    private async Task<MachineConfiguration> GetCachedOrLoadConfigurationAsync()
     {
-        var services = _configuration.GetSection("ServiceSettings:ServicesToMonitor")
-            .Get<string[]>() ?? Array.Empty<string>();
-        return services.ToList();
-    }
+        if (!await _loadLock.WaitAsync(0))
+        {
+            _logger.LogDebug("Another thread is loading configuration, waiting...");
+            await _loadLock.WaitAsync();
+            _loadLock.Release();
+            return _cachedConfiguration ?? new MachineConfiguration();
+        }
 
-    public string GetMonitoredPorts()
-    {
-        var ports = _configuration.GetSection("TcpPortSettings:Ports")
-            .Get<int[]>() ?? Array.Empty<int>();
-        return string.Join(",", ports);
-    }
-
-    public async Task UpdateMonitoredPortsAsync(IEnumerable<int> ports)
-    {
-        var config = await LoadConfigurationFile();
-        var oldPorts = GetMonitoredPorts();
-        UpdateTcpPortSettings(config, string.Join(",", ports));
-        await SaveConfigurationFile(config);
-        
-        _logger.LogInformation(
-            "TCP Ports configuration changed from [{OldPorts}] to [{NewPorts}]", 
-            oldPorts, 
-            string.Join(",", ports));
-        
-        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    public async Task UpdateScheduleAsync(string cronExpression)
-    {
-        var config = await LoadConfigurationFile();
-        var oldSchedule = GetCurrentSchedule();
-        UpdateSchedulerSettings(config, cronExpression);
-        await SaveConfigurationFile(config);
-        
-        _logger.LogInformation(
-            "Schedule changed from '{OldSchedule}' to '{NewSchedule}'", 
-            oldSchedule, 
-            cronExpression);
-        
-        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    public async Task UpdateMonitoredServicesAsync(List<string> services)
-    {
-        var config = await LoadConfigurationFile();
-        var oldServices = GetMonitoredServices();
-        UpdateServiceSettings(config, services);
-        await SaveConfigurationFile(config);
-        
-        _logger.LogInformation(
-            "Monitored services changed from [{OldServices}] to [{NewServices}]", 
-            string.Join(",", oldServices), 
-            string.Join(",", services));
-        
-        ConfigurationChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    private async Task<Dictionary<string, JsonElement>> LoadConfigurationFile()
-    {
-        var jsonString = await File.ReadAllTextAsync(_configPath);
-        return JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonString) 
-            ?? new Dictionary<string, JsonElement>();
-    }
-
-    private async Task SaveConfigurationFile(Dictionary<string, JsonElement> config)
-    {
-        var jsonString = JsonSerializer.Serialize(config, _jsonOptions);
-        await File.WriteAllTextAsync(_configPath, jsonString);
-    }
-
-    private void UpdateSchedulerSettings(Dictionary<string, JsonElement> config, string cronExpression)
-    {
-        var settings = new { CheckSchedule = cronExpression };
-        var json = JsonSerializer.Serialize(settings);
-        config["SchedulerSettings"] = JsonDocument.Parse(json).RootElement;
-    }
-
-    private void UpdateServiceSettings(Dictionary<string, JsonElement> config, List<string> services)
-    {
-        var settings = new { ServicesToMonitor = services.ToArray() };
-        var json = JsonSerializer.Serialize(settings);
-        config["ServiceSettings"] = JsonDocument.Parse(json).RootElement;
-    }
-
-    private void UpdateTcpPortSettings(Dictionary<string, JsonElement> config, string tcpPorts)
-    {
-        var ports = tcpPorts.Split(',')
-            .Where(p => !string.IsNullOrWhiteSpace(p))
-            .Select(p => int.Parse(p.Trim()))
-            .ToArray();
-
-        var settings = new { Ports = ports };
-        var json = JsonSerializer.Serialize(settings);
-        config["TcpPortSettings"] = JsonDocument.Parse(json).RootElement;
-    }
-
-    public List<string> GetMonitoredIpAddresses()
-    {
         try
         {
-            var addresses = _configuration.GetSection("NetworkSettings:IpAddressesToMonitor")
-                .Get<string[]>() ?? Array.Empty<string>();
-            return addresses.ToList();
+            _isLoading = true;
+            var apiSettings = _configuration.GetSection("ApiSettings");
+            var baseUrl = apiSettings["BaseUrl"];
+            var apiKey = apiSettings["MachineKey"];
+            var url = $"{baseUrl}/api/configuration?apiKey={apiKey}";
+
+            var response = await _httpClient.GetAsync(url);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to load configuration from API. Status: {Status}", response.StatusCode);
+                throw new Exception("Failed to load configuration from API");
+            }
+
+            var apiConfig = await response.Content.ReadFromJsonAsync<ApiMachineConfigurationDto>();
+            if (apiConfig == null)
+            {
+                throw new Exception("Received null configuration from API");
+            }
+
+            var config = apiConfig.ToMachineConfiguration();
+            _logger.LogInformation("Configuration loaded from API successfully");
+
+            _cachedConfiguration = config;
+            _lastLoadTime = DateTime.UtcNow;
+            return config;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting monitored IP addresses");
-            return new List<string>();
+            _logger.LogError(ex, "Error loading configuration");
+            throw;
+        }
+        finally
+        {
+            _isLoading = false;
+            _loadLock.Release();
         }
     }
 
-    public async Task UpdateMonitoredIpAddressesAsync(List<string> ipAddresses)
+    private MachineConfiguration _cachedConfiguration;
+
+    public async Task SaveConfigurationAsync(MachineConfiguration config)
     {
         try
         {
-            var config = await LoadConfigurationFile();
-            var oldAddresses = string.Join(",", GetMonitoredIpAddresses());
+            var apiSettings = _configuration.GetSection("ApiSettings");
+            var baseUrl = apiSettings["BaseUrl"];
+            var apiKey = apiSettings["MachineKey"];
+            var url = $"{baseUrl}/api/configuration?apiKey={apiKey}";
+
+            var apiConfig = ApiMachineConfigurationDto.FromMachineConfiguration(config);
+
+            var response = await _httpClient.PutAsJsonAsync(url, apiConfig);
             
-            UpdateNetworkSettings(config, ipAddresses);
-            await SaveConfigurationFile(config);
-            
-            _logger.LogInformation(
-                "Monitored IP addresses changed from [{OldAddresses}] to [{NewAddresses}]", 
-                oldAddresses, 
-                string.Join(",", ipAddresses));
-            
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Failed to save configuration to API. Status: {Status}", response.StatusCode);
+                throw new Exception("Failed to save configuration to API");
+            }
+
+            _cachedConfiguration = config;
+            _lastLoadTime = DateTime.UtcNow;
+
             ConfigurationChanged?.Invoke(this, EventArgs.Empty);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating monitored IP addresses");
+            _logger.LogError(ex, "Error saving configuration");
             throw;
         }
-    }
-
-    private void UpdateNetworkSettings(Dictionary<string, JsonElement> config, List<string> ipAddresses)
-    {
-        var settings = new { IpAddressesToMonitor = ipAddresses.ToArray() };
-        var json = JsonSerializer.Serialize(settings);
-        config["NetworkSettings"] = JsonDocument.Parse(json).RootElement;
-    }
-
-    public List<FolderMonitorConfig> GetMonitoredFolders()
-    {
-        try
-        {
-            var folders = _configuration.GetSection("FolderMonitorSettings:MonitoredFolders")
-                .Get<List<FolderMonitorConfig>>() ?? new List<FolderMonitorConfig>();
-            
-            _logger.LogInformation("Retrieved {Count} monitored folders from configuration", folders.Count);
-            return folders;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error getting monitored folders");
-            return new List<FolderMonitorConfig>();
-        }
-    }
-
-    public async Task UpdateMonitoredFoldersAsync(List<FolderMonitorConfig> folders)
-    {
-        try
-        {
-            var config = await LoadConfigurationFile();
-            var oldFolders = string.Join(", ", GetMonitoredFolders().Select(f => f.Path));
-            
-            UpdateFolderMonitorSettings(config, folders);
-            await SaveConfigurationFile(config);
-            
-            _logger.LogInformation(
-                "Monitored folders changed from [{OldFolders}] to [{NewFolders}]", 
-                oldFolders, 
-                string.Join(", ", folders.Select(f => f.Path)));
-            
-            ConfigurationChanged?.Invoke(this, EventArgs.Empty);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error updating monitored folders");
-            throw;
-        }
-    }
-
-    private void UpdateFolderMonitorSettings(Dictionary<string, JsonElement> config, List<FolderMonitorConfig> folders)
-    {
-        var settings = new { MonitoredFolders = folders };
-        var json = JsonSerializer.Serialize(settings);
-        config["FolderMonitorSettings"] = JsonDocument.Parse(json).RootElement;
     }
 } 

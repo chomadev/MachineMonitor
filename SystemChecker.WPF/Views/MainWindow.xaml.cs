@@ -26,7 +26,6 @@ public partial class MainWindow : Window
         if (WindowState == WindowState.Minimized)
         {
             Hide();
-            _trayIconService.ShowNotification("System Checker", "Application continues running in the background.");
         }
     }
 

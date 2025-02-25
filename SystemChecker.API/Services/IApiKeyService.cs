@@ -5,5 +5,4 @@ public interface IApiKeyService
     Task<bool> IsValidApiKeyAsync(string apiKey);
     Task<ApiKey> GenerateApiKeyAsync(string machineName, string? description = null);
     Task<ApiKey?> GetApiKeyAsync(string key);
-    Task UpdateLastUsedAsync(string key);
 }

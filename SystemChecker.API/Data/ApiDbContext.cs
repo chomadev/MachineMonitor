@@ -17,6 +17,8 @@ public class ApiDbContext : DbContext
     public DbSet<FolderChange> FolderChanges { get; set; }
     public DbSet<MonitoredAddress> MonitoredAddresses { get; set; }
     public DbSet<NetworkStatus> NetworkStatuses { get; set; }
+    public DbSet<MachineConfiguration> MachineConfigurations { get; set; }
+    public DbSet<FolderMonitorConfig> FolderMonitorConfigs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -84,6 +86,9 @@ public class ApiDbContext : DbContext
             entity.Property(e => e.Name).IsRequired();
             entity.Property(e => e.Description);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETDATE()");
+            entity.HasOne(e => e.ApiKey)
+                .WithOne(k => k.Machine)
+                .HasForeignKey<ApiKey>(k => k.MachineId);
         });
 
         modelBuilder.Entity<SystemCheckHistory>(entity =>
@@ -95,6 +100,46 @@ public class ApiDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(e => e.MachineId)
                   .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.Services)
+                .WithOne(s => s.SystemCheckHistory)
+                .HasForeignKey(s => s.SystemCheckHistoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Network)
+                .WithOne(n => n.SystemCheckHistory)
+                .HasForeignKey<NetworkStatus>(n => n.SystemCheckHistoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.Disks)
+                .WithOne(d => d.SystemCheckHistory)
+                .HasForeignKey(d => d.SystemCheckHistoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Cpu)
+                .WithOne(c => c.SystemCheckHistory)
+                .HasForeignKey<CpuStatus>(c => c.SystemCheckHistoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Memory)
+                .WithOne(m => m.SystemCheckHistory)
+                .HasForeignKey<MemoryStatus>(m => m.SystemCheckHistoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.Ports)
+                .WithOne(p => p.SystemCheckHistory)
+                .HasForeignKey(p => p.SystemCheckHistoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.Folders)
+                .WithOne(f => f.SystemCheckHistory)
+                .HasForeignKey(f => f.SystemCheckHistoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(e => e.FolderChanges)
+                .WithOne(f => f.SystemCheckHistory)
+                .HasForeignKey(f => f.SystemCheckHistoryId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ServiceStatus>(entity =>
@@ -162,6 +207,26 @@ public class ApiDbContext : DbContext
                   .WithMany(h => h.Ports)
                   .HasForeignKey(e => e.SystemCheckHistoryId)
                   .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MachineConfiguration>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Machine)
+                .WithOne(m => m.MachineConfiguration)
+                .HasForeignKey<MachineConfiguration>(e => e.MachineId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<FolderMonitorConfig>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Path).IsRequired();
+            
+            entity.HasOne(e => e.MachineConfiguration)
+                .WithMany(m => m.MonitoredFolders)
+                .HasForeignKey(e => e.MachineConfigurationId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 } 

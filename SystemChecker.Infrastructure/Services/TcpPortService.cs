@@ -10,7 +10,7 @@ namespace SystemChecker.Infrastructure.Services
     {
         private readonly ILogger<TcpPortService> _logger;
         private readonly IConfigurationService _configService;
-        private IEnumerable<int> _cachedPorts;
+        private MachineConfiguration _currentConfig;
 
         public TcpPortService(
             ILogger<TcpPortService> logger,
@@ -18,29 +18,32 @@ namespace SystemChecker.Infrastructure.Services
         {
             _logger = logger;
             _configService = configService;
-            _cachedPorts = LoadConfiguredPorts();
+            _currentConfig = new MachineConfiguration();
             
-            _configService.ConfigurationChanged += (_, _) => 
+            _configService.ConfigurationChanged += async (_, _) => 
             {
-                _cachedPorts = LoadConfiguredPorts();
+                _currentConfig = await _configService.LoadConfigurationAsync();
                 _logger.LogInformation("TCP Ports configuration updated: {Ports}", 
-                    string.Join(", ", _cachedPorts));
+                    string.Join(", ", _currentConfig.TcpPorts));
             };
-        }
 
-        private IEnumerable<int> LoadConfiguredPorts()
-        {
-            var portsString = _configService.GetMonitoredPorts();
-            return string.IsNullOrEmpty(portsString)
-                ? Enumerable.Empty<int>()
-                : portsString.Split(',')
-                    .Where(p => !string.IsNullOrWhiteSpace(p))
-                    .Select(p => int.Parse(p.Trim()));
+            // Carrega configuração inicial
+            Task.Run(async () =>
+            {
+                try
+                {
+                    _currentConfig = await _configService.LoadConfigurationAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error loading initial configuration");
+                }
+            });
         }
 
         public IEnumerable<int> GetConfiguredPorts()
         {
-            return _cachedPorts;
+            return _currentConfig.TcpPorts;
         }
 
         public async Task<IEnumerable<TcpPortStatus>> CheckPortsAsync(IEnumerable<int> ports)
@@ -115,11 +118,6 @@ namespace SystemChecker.Infrastructure.Services
             }
 
             return portInfo;
-        }
-
-        public async Task UpdateConfiguredPortsAsync(IEnumerable<int> ports)
-        {
-            await _configService.UpdateMonitoredPortsAsync(ports);
         }
     }
 }

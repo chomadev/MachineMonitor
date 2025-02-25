@@ -1,13 +1,15 @@
+using AutoMapper;
 using Microsoft.EntityFrameworkCore;
 using SystemChecker.API.Data;
 using SystemChecker.API.Models;
+using SystemChecker.API.Models.Dto;
 using System.Text.Json;
 
 namespace SystemChecker.API.Services;
 
 public interface ISystemCheckHistoryService
 {
-    Task<SystemCheckHistory> SaveCheckAsync(string apiKey, SystemCheckData checkData);
+    Task<SystemCheckHistory> SaveCheckAsync(string apiKey, SystemCheckDto checkData);
     Task<SystemCheckHistory?> GetLatestCheckAsync(string apiKey);
     Task<IEnumerable<SystemCheckHistory>> GetCheckHistoryAsync(string apiKey, DateTime? from = null, DateTime? to = null);
 }
@@ -15,22 +17,25 @@ public interface ISystemCheckHistoryService
 public class SystemCheckHistoryService : ISystemCheckHistoryService
 {
     private readonly ApiDbContext _context;
-    private readonly IApiKeyService _apiKeyService;
+    private readonly IMapper _mapper;
     private readonly ILogger<SystemCheckHistoryService> _logger;
 
     public SystemCheckHistoryService(
         ApiDbContext context,
-        IApiKeyService apiKeyService,
+        IMapper mapper,
         ILogger<SystemCheckHistoryService> logger)
     {
         _context = context;
-        _apiKeyService = apiKeyService;
+        _mapper = mapper;
         _logger = logger;
     }
 
-    public async Task<SystemCheckHistory> SaveCheckAsync(string apiKey, SystemCheckData checkData)
+    public async Task<SystemCheckHistory> SaveCheckAsync(string apiKey, SystemCheckDto checkData)
     {
-        var key = await _apiKeyService.GetApiKeyAsync(apiKey);
+        var key = await _context.ApiKeys
+            .Include(k => k.Machine)
+            .FirstOrDefaultAsync(k => k.Key == apiKey);
+
         if (key == null)
             throw new UnauthorizedAccessException("API Key is invalid");
 
@@ -50,7 +55,8 @@ public class SystemCheckHistoryService : ISystemCheckHistoryService
                 IsConnected = checkData.Network.IsConnected,
                 HasInternetAccess = checkData.Network.HasInternetAccess,
                 IpAddress = checkData.Network.IpAddress,
-                ActiveInterfaces = JsonSerializer.Serialize(checkData.Network.ActiveInterfaces),
+                ActiveInterfaces = checkData.Network.ActiveInterfaces != null ? 
+                    JsonSerializer.Serialize(checkData.Network.ActiveInterfaces) : "[]",
                 MonitoredAddresses = checkData.Network.MonitoredAddresses.Select(a => new MonitoredAddress
                 {
                     Address = a.Address,
@@ -90,7 +96,8 @@ public class SystemCheckHistoryService : ISystemCheckHistoryService
                 HasZeroByteFiles = f.HasZeroByteFiles,
                 IsValid = f.IsValid,
                 ErrorMessage = f.ErrorMessage,
-                ZeroByteFiles = JsonSerializer.Serialize(f.ZeroByteFiles)
+                ZeroByteFiles = f.ZeroByteFiles != null ? 
+                    JsonSerializer.Serialize(f.ZeroByteFiles) : "[]"
             }).ToList(),
             FolderChanges = checkData.FolderChanges.Select(f => new FolderChange
             {
@@ -103,30 +110,36 @@ public class SystemCheckHistoryService : ISystemCheckHistoryService
         _context.SystemCheckHistory.Add(history);
         await _context.SaveChangesAsync();
 
-        await _apiKeyService.UpdateLastUsedAsync(apiKey);
-
         return history;
     }
 
     public async Task<SystemCheckHistory?> GetLatestCheckAsync(string apiKey)
     {
-        var key = await _apiKeyService.GetApiKeyAsync(apiKey);
+        var key = await _context.ApiKeys
+            .FirstOrDefaultAsync(k => k.Key == apiKey);
+
         if (key == null)
             throw new UnauthorizedAccessException("API Key is invalid");
 
-        return await _context.SystemCheckHistory
-            .Include(h => h.Services)
-            .Include(h => h.Network)
-            .ThenInclude(n => n.MonitoredAddresses)
-            .Include(h => h.Disks)
-            .Include(h => h.Cpu)
-            .Include(h => h.Memory)
-            .Include(h => h.Ports)
-            .Include(h => h.Folders)
-            .Include(h => h.FolderChanges)
-            .Where(h => h.MachineId == key.MachineId)
-            .OrderByDescending(h => h.Timestamp)
+        var check = await _context.SystemCheckHistory
+            .Include(x => x.Services)
+            .Include(x => x.Network)
+                .ThenInclude(n => n!.MonitoredAddresses)
+            .Include(x => x.Disks)
+            .Include(x => x.Cpu)
+            .Include(x => x.Memory)
+            .Include(x => x.Ports)
+            .Include(x => x.Folders)
+            .Include(x => x.FolderChanges)
+            .Include(x => x.Machine)
+            .Where(x => x.MachineId == key.MachineId)
+            .OrderByDescending(x => x.Timestamp)
             .FirstOrDefaultAsync();
+
+        if (check == null)
+            return null;
+
+        return check;
     }
 
     public async Task<IEnumerable<SystemCheckHistory>> GetCheckHistoryAsync(
@@ -134,14 +147,16 @@ public class SystemCheckHistoryService : ISystemCheckHistoryService
         DateTime? from = null,
         DateTime? to = null)
     {
-        var key = await _apiKeyService.GetApiKeyAsync(apiKey);
+        var key = await _context.ApiKeys
+            .FirstOrDefaultAsync(k => k.Key == apiKey);
+
         if (key == null)
             throw new UnauthorizedAccessException("API Key is invalid");
 
         var query = _context.SystemCheckHistory
             .Include(h => h.Services)
             .Include(h => h.Network)
-            .ThenInclude(n => n.MonitoredAddresses)
+            .ThenInclude(n => n!.MonitoredAddresses)
             .Include(h => h.Disks)
             .Include(h => h.Cpu)
             .Include(h => h.Memory)
@@ -156,8 +171,10 @@ public class SystemCheckHistoryService : ISystemCheckHistoryService
         if (to.HasValue)
             query = query.Where(h => h.Timestamp <= to.Value);
 
-        return await query
+        var results = await query
             .OrderByDescending(h => h.Timestamp)
             .ToListAsync();
+
+        return results;
     }
 } 

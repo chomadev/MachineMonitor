@@ -2,17 +2,23 @@ using SystemChecker.API.Services;
 using Microsoft.EntityFrameworkCore;
 using SystemChecker.API.Data;
 using SystemChecker.API.Routes;
+using SystemChecker.API.Mapping;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// Add AutoMapper
+builder.Services.AddAutoMapper(typeof(SystemCheckProfile));
+
 builder.Services.AddDbContext<ApiDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 builder.Services.AddScoped<IMachineService, MachineService>();
 builder.Services.AddScoped<ISystemCheckHistoryService, SystemCheckHistoryService>();
+builder.Services.AddScoped<IConfigurationService, ConfigurationService>();
 
 // Add CORS
 builder.Services.AddCors(options =>
@@ -55,5 +61,6 @@ app.UseCors("AllowAll");
 // Map routes
 app.MapSystemCheckRoutes();
 app.MapMachineRoutes();
+app.MapConfigurationRoutes();
 
 app.Run(); 

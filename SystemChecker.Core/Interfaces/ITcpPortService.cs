@@ -7,6 +7,5 @@ namespace SystemChecker.Core.Interfaces
         Task<IEnumerable<TcpPortStatus>> CheckPortsAsync(IEnumerable<int> ports);
         Task<TcpPortStatus> CheckPortAsync(int port);
         IEnumerable<int> GetConfiguredPorts();
-        Task UpdateConfiguredPortsAsync(IEnumerable<int> ports);
     }
 } 

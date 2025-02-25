@@ -10,6 +10,9 @@ using SystemChecker.WPF.ViewModels;
 using SystemChecker.WPF.Views;
 using Microsoft.Extensions.Logging;
 using SystemChecker.Infrastructure.Settings;
+using Microsoft.Extensions.Configuration;
+using SystemChecker.Core.Services;
+using System.Net.Http;
 
 namespace SystemChecker.WPF;
 
@@ -28,7 +31,17 @@ public partial class App : Application
         _host = Host.CreateDefaultBuilder()
             .ConfigureServices((context, services) =>
             {
-                services.AddSystemChecker(context.Configuration);
+                // Core Services
+                services.AddSingleton<IMessagingCenter, MessagingCenter>();
+                services.AddSingleton<IConfigurationService, ConfigurationService>();
+
+                // Infrastructure Services
+                services.AddSingleton<IServiceChecker, ServiceChecker>();
+                services.AddSingleton<INetworkChecker, NetworkChecker>();
+                services.AddSingleton<IDiskChecker, DiskChecker>();
+                services.AddSingleton<IResourceChecker, ResourceChecker>();
+                services.AddSingleton<ITcpPortService, TcpPortService>();
+                services.AddSingleton<IFolderMonitor, FolderMonitor>();
 
                 // Scheduler Config
                 services.Configure<SchedulerSettings>(
@@ -46,12 +59,37 @@ public partial class App : Application
                     builder.SetMinimumLevel(LogLevel.Information);
                 });
 
-                // Services
+                // System Check Service
+                services.AddHttpClient();
+                services.AddSingleton<ISystemCheckService, SystemCheckService>(sp =>
+                {
+                    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+                    var httpClient = httpClientFactory.CreateClient();
+                    var apiSettings = sp.GetRequiredService<IConfiguration>()
+                        .GetSection("ApiSettings")
+                        .Get<ApiSettings>();
+                    
+                    httpClient.BaseAddress = new Uri(apiSettings.BaseUrl);
+                    httpClient.DefaultRequestHeaders.Add("ApiKey", apiSettings.MachineKey);
+                    httpClient.Timeout = TimeSpan.FromSeconds(30);
+                    
+                    return new SystemCheckService(
+                        sp.GetRequiredService<ILogger<SystemCheckService>>(),
+                        sp.GetRequiredService<IServiceChecker>(),
+                        sp.GetRequiredService<INetworkChecker>(),
+                        sp.GetRequiredService<IDiskChecker>(),
+                        sp.GetRequiredService<IResourceChecker>(),
+                        sp.GetRequiredService<IConfigurationService>(),
+                        sp.GetRequiredService<ITcpPortService>(),
+                        sp.GetRequiredService<IFolderMonitor>(),
+                        httpClient,
+                        sp.GetRequiredService<IConfiguration>()
+                    );
+                });
+
+                // UI Services
                 services.AddSingleton<ITrayIconService, TrayIconService>();
                 services.AddSingleton<ISchedulerService, SchedulerService>();
-                services.AddSingleton<IConfigurationService, ConfigurationService>();
-                services.AddSingleton<ITcpPortService, TcpPortService>();
-                services.AddHttpClient<ISystemCheckService, SystemCheckService>();
 
                 // UI
                 services.AddSingleton<ConfigurationViewModel>();

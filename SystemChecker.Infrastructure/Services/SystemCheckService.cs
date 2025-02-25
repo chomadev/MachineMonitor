@@ -1,9 +1,8 @@
-using System.Net.Http.Json;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+using System.Net.Http.Json;
 using SystemChecker.Core.Interfaces;
 using SystemChecker.Core.Models;
-using SystemChecker.Infrastructure.Settings;
 
 namespace SystemChecker.Infrastructure.Services;
 
@@ -18,7 +17,8 @@ public class SystemCheckService : ISystemCheckService
     private readonly ITcpPortService _tcpPortService;
     private readonly IFolderMonitor _folderMonitor;
     private readonly HttpClient _httpClient;
-    private readonly string _apiUrl;
+    private readonly IConfiguration _configuration;
+    private MachineConfiguration _currentConfig;
 
     public SystemCheckService(
         ILogger<SystemCheckService> logger,
@@ -29,8 +29,8 @@ public class SystemCheckService : ISystemCheckService
         IConfigurationService configService,
         ITcpPortService tcpPortService,
         IFolderMonitor folderMonitor,
-        IOptions<ApiSettings> apiSettings,
-        HttpClient httpClient)
+        HttpClient httpClient,
+        IConfiguration configuration)
     {
         _logger = logger;
         _serviceChecker = serviceChecker;
@@ -41,71 +41,69 @@ public class SystemCheckService : ISystemCheckService
         _tcpPortService = tcpPortService;
         _folderMonitor = folderMonitor;
         _httpClient = httpClient;
-        
-        // Remove redirecionamento HTTPS
-        _httpClient.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
-        _apiUrl = $"{apiSettings.Value.BaseUrl}/api/systemcheck?apiKey={apiSettings.Value.MachineKey}";
+        _configuration = configuration;
+        _currentConfig = new MachineConfiguration();
 
-        // Subscribe to configuration changes
-        _configService.ConfigurationChanged += (_, _) =>
+        _configService.ConfigurationChanged += async (_, _) =>
         {
-            _logger.LogInformation("Configuration changed - next check will use updated settings");
+            _currentConfig = await _configService.LoadConfigurationAsync();
+            _logger.LogInformation("System check configuration updated");
         };
+
+        // Carrega configuração inicial
+        Task.Run(async () =>
+        {
+            try
+            {
+                _currentConfig = await _configService.LoadConfigurationAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading initial configuration");
+            }
+        });
     }
 
     public async Task<SystemCheck> PerformSystemCheckAsync()
     {
-        var systemCheck = new SystemCheck
-        {
-            Timestamp = DateTime.Now
-        };
-
         try
         {
-            // Services Check - uses current configuration
-            _logger.LogInformation("Starting services check...");
-            systemCheck.Services = await _serviceChecker.CheckServicesAsync(_configService.GetMonitoredServices());
-            _logger.LogInformation("Services check completed");
+            _logger.LogInformation("Starting system check...");
 
-            // Resources Check
-            _logger.LogInformation("Starting resources check...");
+            var systemCheck = new SystemCheck
+            {
+                Id = Guid.NewGuid(),
+                Timestamp = DateTime.UtcNow
+            };
+
+            // Check services
+            systemCheck.Services = await _serviceChecker.CheckServicesAsync(_currentConfig.ServicesToMonitor);
+
+            // Check network
+            systemCheck.Network = await _networkChecker.CheckNetworkAsync();
+
+            // Check disks
+            systemCheck.Disks = await _diskChecker.CheckDisksAsync();
+
+            // Check CPU and Memory
             systemCheck.Cpu = await _resourceChecker.CheckCpuAsync();
             systemCheck.Memory = await _resourceChecker.CheckMemoryAsync();
-            _logger.LogInformation("Resources check completed");
 
-            // Network Check
-            _logger.LogInformation("Starting network check...");
-            systemCheck.Network = await _networkChecker.CheckNetworkAsync();
-            _logger.LogInformation("Network check completed: Connected={Connected}, HasInternet={HasInternet}, MonitoredIPs={IPs}", 
-                systemCheck.Network.IsConnected, 
-                systemCheck.Network.HasInternetAccess,
-                string.Join(",", _configService.GetMonitoredIpAddresses()));
+            // Check TCP ports
+            systemCheck.Ports = (await _tcpPortService.CheckPortsAsync(_currentConfig.TcpPorts)).ToArray();
 
-            // TCP Ports Check - uses current configuration via TcpPortService
-            _logger.LogInformation("Starting TCP ports check...");
-            var configuredPorts = _tcpPortService.GetConfiguredPorts();
-            systemCheck.Ports = (await _tcpPortService.CheckPortsAsync(configuredPorts)).ToArray();
-            _logger.LogInformation("TCP ports check completed. Checked {count} ports", systemCheck.Ports.Length);
-
-            // Disks Check
-            _logger.LogInformation("Starting disks check...");
-            systemCheck.Disks = (await _diskChecker.CheckDisksAsync()).ToArray();
-            _logger.LogInformation("Disks check completed");
-
-            // Folder Monitoring
-            _logger.LogInformation("Starting folder monitoring...");
-            var folders = _configService.GetMonitoredFolders();
-            systemCheck.Folders = await _folderMonitor.CheckFoldersAsync(folders);
+            // Check folders
+            systemCheck.Folders = await _folderMonitor.CheckFoldersAsync(_currentConfig.MonitoredFolders);
             systemCheck.FolderChanges = _folderMonitor.GetChanges();
-            _logger.LogInformation("Folder monitoring completed. Checked {count} folders", folders.Count);
+
+            _logger.LogInformation("System check completed successfully");
+            return systemCheck;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error performing system check");
             throw;
         }
-
-        return systemCheck;
     }
 
     public async Task<bool> PushCheckResultAsync(SystemCheck check)
@@ -113,16 +111,26 @@ public class SystemCheckService : ISystemCheckService
         try
         {
             _logger.LogInformation("Starting to send check results to API...");
-            
-            var response = await _httpClient.PostAsJsonAsync(_apiUrl, check);
-            
+
+            // Adicionar apiKey como parâmetro de consulta
+            var apiSettings = _configuration.GetSection("ApiSettings");
+            var baseUrl = apiSettings["BaseUrl"];
+            var apiKey = apiSettings["MachineKey"];
+            var url = $"{baseUrl}/api/systemcheck?apiKey={apiKey}";
+
+            // Enviar o objeto SystemCheck
+            var response = await _httpClient.PostAsJsonAsync(url, check);
+
             if (response.IsSuccessStatusCode)
             {
                 _logger.LogInformation("Results sent successfully to API");
                 return true;
             }
-            
-            _logger.LogError("Failed to send results to API. Status: {StatusCode}", response.StatusCode);
+
+            // Ler o conteúdo da resposta para melhor diagnóstico
+            var content = await response.Content.ReadAsStringAsync();
+            _logger.LogError("Failed to send results to API. Status: {StatusCode}, Content: {Content}",
+                response.StatusCode, content);
             return false;
         }
         catch (Exception ex)

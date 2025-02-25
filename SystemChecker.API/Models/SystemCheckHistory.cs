@@ -27,19 +27,20 @@ public class ApiKey
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAt { get; set; }
     public DateTime? LastUsed { get; set; }
-    
+
     public int MachineId { get; set; }
     public Machine Machine { get; set; } = null!;
-} 
+}
 public class Machine
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public DateTime CreatedAt { get; set; }
-    [JsonIgnore]
-    public ApiKey? ApiKey { get; set; }
-} 
+
+    public MachineConfiguration MachineConfiguration { get; set; }
+    [JsonIgnore] public ApiKey? ApiKey { get; set; }
+}
 public class ServiceStatus
 {
     public int Id { get; set; }
@@ -47,7 +48,7 @@ public class ServiceStatus
     public string DisplayName { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public bool IsRunning { get; set; }
-    
+
     public int SystemCheckHistoryId { get; set; }
     [JsonIgnore] public SystemCheckHistory SystemCheckHistory { get; set; } = null!;
 }
@@ -61,7 +62,7 @@ public class DiskStatus
     public long TotalSpace { get; set; }
     public long FreeSpace { get; set; }
     public double UsagePercentage { get; set; }
-    
+
     public int SystemCheckHistoryId { get; set; }
     [JsonIgnore] public SystemCheckHistory SystemCheckHistory { get; set; } = null!;
 }
@@ -70,7 +71,7 @@ public class CpuStatus
 {
     public int Id { get; set; }
     public double UsagePercentage { get; set; }
-    
+
     public int SystemCheckHistoryId { get; set; }
     [JsonIgnore] public SystemCheckHistory SystemCheckHistory { get; set; } = null!;
 }
@@ -81,7 +82,7 @@ public class MemoryStatus
     public long TotalPhysicalMemory { get; set; }
     public long AvailablePhysicalMemory { get; set; }
     public double UsagePercentage { get; set; }
-    
+
     public int SystemCheckHistoryId { get; set; }
     [JsonIgnore] public SystemCheckHistory SystemCheckHistory { get; set; } = null!;
 }
@@ -92,10 +93,10 @@ public class TcpPortStatus
     public int Port { get; set; }
     public bool IsOpen { get; set; }
     public string? Service { get; set; }
-    
+
     public int SystemCheckHistoryId { get; set; }
     [JsonIgnore] public SystemCheckHistory SystemCheckHistory { get; set; } = null!;
-} 
+}
 
 public class FolderChange
 {
@@ -105,7 +106,7 @@ public class FolderChange
     public string LastChangeType { get; set; } = string.Empty;
     public int SystemCheckHistoryId { get; set; }
     [JsonIgnore] public SystemCheckHistory SystemCheckHistory { get; set; } = null!;
-} 
+}
 public class FolderStatus
 {
     public int Id { get; set; }
@@ -116,10 +117,10 @@ public class FolderStatus
     public bool HasZeroByteFiles { get; set; }
     public bool IsValid { get; set; }
     public string? ErrorMessage { get; set; }
-    public string ZeroByteFiles { get; set; } = string.Empty; // JSON serialized
+    public string ZeroByteFiles { get; set; } = "[]"; // JSON serialized
     public int SystemCheckHistoryId { get; set; }
     [JsonIgnore] public SystemCheckHistory SystemCheckHistory { get; set; } = null!;
-} 
+}
 public class MonitoredAddress
 {
     public int Id { get; set; }
@@ -128,7 +129,7 @@ public class MonitoredAddress
     public int ResponseTime { get; set; }
     public int NetworkStatusId { get; set; }
     [JsonIgnore] public NetworkStatus NetworkStatus { get; set; } = null!;
-} 
+}
 
 public class NetworkStatus
 {
@@ -136,8 +137,32 @@ public class NetworkStatus
     public bool IsConnected { get; set; }
     public bool HasInternetAccess { get; set; }
     public string? IpAddress { get; set; }
-    public string ActiveInterfaces { get; set; } = string.Empty; // JSON serialized
+    public string ActiveInterfaces { get; set; } = "[]"; // JSON serialized
     public int SystemCheckHistoryId { get; set; }
     public List<MonitoredAddress> MonitoredAddresses { get; set; } = new();
     [JsonIgnore] public SystemCheckHistory SystemCheckHistory { get; set; } = null!;
-} 
+}
+
+public class MachineConfiguration
+{
+    public int Id { get; set; }
+    public int MachineId { get; set; }
+    [JsonIgnore] public Machine Machine { get; set; } = null!;
+    public string CheckSchedule { get; set; } = "*/5 * * * *";
+    public string ServicesToMonitor { get; set; } = "[]"; // JSON serialized
+    public string IpAddressesToMonitor { get; set; } = "[]"; // JSON serialized
+    public string TcpPorts { get; set; } = "[]"; // JSON serialized
+    public List<FolderMonitorConfig> MonitoredFolders { get; set; } = new();
+    public DateTime LastUpdated { get; set; }
+}
+
+public class FolderMonitorConfig
+{
+    public int Id { get; set; }
+    public int MachineConfigurationId { get; set; }
+    public string Path { get; set; } = string.Empty;
+    public bool ShouldBeEmpty { get; set; }
+    public bool MonitorLastModified { get; set; }
+    public bool CheckZeroByteFiles { get; set; }
+    [JsonIgnore] public MachineConfiguration MachineConfiguration { get; set; } = null!;
+}

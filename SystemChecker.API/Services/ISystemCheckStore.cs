@@ -1,9 +1,9 @@
-using SystemChecker.API.Models;
+//using SystemChecker.API.Models;
 
-namespace SystemChecker.API.Services;
+//namespace SystemChecker.API.Services;
 
-public interface ISystemCheckStore
-{
-    Task SaveCheckAsync(SystemCheckData check);
-    Task<SystemCheckData?> GetLatestCheckAsync();
-} 
+//public interface ISystemCheckStore
+//{
+//    Task SaveCheckAsync(SystemCheckData check);
+//    Task<SystemCheckData?> GetLatestCheckAsync();
+//} 

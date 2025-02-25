@@ -17,7 +17,7 @@ namespace SystemChecker.API.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.0")
+                .HasAnnotation("ProductVersion", "8.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -139,6 +139,37 @@ namespace SystemChecker.API.Migrations
                     b.ToTable("FolderChanges");
                 });
 
+            modelBuilder.Entity("SystemChecker.API.Models.FolderMonitorConfig", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("CheckZeroByteFiles")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MachineConfigurationId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("MonitorLastModified")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("ShouldBeEmpty")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MachineConfigurationId");
+
+                    b.ToTable("FolderMonitorConfigs");
+                });
+
             modelBuilder.Entity("SystemChecker.API.Models.FolderStatus", b =>
                 {
                     b.Property<int>("Id")
@@ -206,6 +237,44 @@ namespace SystemChecker.API.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Machines");
+                });
+
+            modelBuilder.Entity("SystemChecker.API.Models.MachineConfiguration", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CheckSchedule")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IpAddressesToMonitor")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("LastUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("MachineId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ServicesToMonitor")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TcpPorts")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MachineId")
+                        .IsUnique();
+
+                    b.ToTable("MachineConfigurations");
                 });
 
             modelBuilder.Entity("SystemChecker.API.Models.MemoryStatus", b =>
@@ -426,6 +495,17 @@ namespace SystemChecker.API.Migrations
                     b.Navigation("SystemCheckHistory");
                 });
 
+            modelBuilder.Entity("SystemChecker.API.Models.FolderMonitorConfig", b =>
+                {
+                    b.HasOne("SystemChecker.API.Models.MachineConfiguration", "MachineConfiguration")
+                        .WithMany("MonitoredFolders")
+                        .HasForeignKey("MachineConfigurationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("MachineConfiguration");
+                });
+
             modelBuilder.Entity("SystemChecker.API.Models.FolderStatus", b =>
                 {
                     b.HasOne("SystemChecker.API.Models.SystemCheckHistory", "SystemCheckHistory")
@@ -435,6 +515,17 @@ namespace SystemChecker.API.Migrations
                         .IsRequired();
 
                     b.Navigation("SystemCheckHistory");
+                });
+
+            modelBuilder.Entity("SystemChecker.API.Models.MachineConfiguration", b =>
+                {
+                    b.HasOne("SystemChecker.API.Models.Machine", "Machine")
+                        .WithOne()
+                        .HasForeignKey("SystemChecker.API.Models.MachineConfiguration", "MachineId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Machine");
                 });
 
             modelBuilder.Entity("SystemChecker.API.Models.MemoryStatus", b =>
@@ -510,6 +601,11 @@ namespace SystemChecker.API.Migrations
             modelBuilder.Entity("SystemChecker.API.Models.Machine", b =>
                 {
                     b.Navigation("ApiKey");
+                });
+
+            modelBuilder.Entity("SystemChecker.API.Models.MachineConfiguration", b =>
+                {
+                    b.Navigation("MonitoredFolders");
                 });
 
             modelBuilder.Entity("SystemChecker.API.Models.NetworkStatus", b =>

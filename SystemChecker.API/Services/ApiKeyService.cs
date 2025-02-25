@@ -49,17 +49,8 @@ public class ApiKeyService : IApiKeyService
     {
         return await _context.ApiKeys
             .Include(k => k.Machine)
+            .ThenInclude(k => k.MachineConfiguration)
             .FirstOrDefaultAsync(k => k.Key == key);
-    }
-
-    public async Task UpdateLastUsedAsync(string key)
-    {
-        var apiKey = await _context.ApiKeys.FirstOrDefaultAsync(k => k.Key == key);
-        if (apiKey != null)
-        {
-            apiKey.LastUsed = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
-        }
     }
 
     private string GenerateUniqueKey()

@@ -86,11 +86,6 @@ public class TrayIconService : ITrayIconService, IDisposable
         }
     }
 
-    public void ShowNotification(string title, string message)
-    {
-        _notifyIcon?.ShowBalloonTip(title, message, BalloonIcon.Info);
-    }
-
     public void Dispose()
     {
         _notifyIcon?.Dispose();

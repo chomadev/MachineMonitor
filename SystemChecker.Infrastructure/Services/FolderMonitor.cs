@@ -8,6 +8,7 @@ using SystemChecker.Core.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace SystemChecker.Infrastructure.Services;
 
@@ -17,6 +18,7 @@ public class FolderMonitor : IFolderMonitor, IDisposable
     private readonly ConcurrentDictionary<string, FolderChangeStatus> _changes;
     private readonly ILogger<FolderMonitor> _logger;
     private readonly IConfigurationService _configService;
+    private MachineConfiguration _currentConfig;
 
     public FolderMonitor(
         ILogger<FolderMonitor> logger,
@@ -26,15 +28,33 @@ public class FolderMonitor : IFolderMonitor, IDisposable
         _changes = new ConcurrentDictionary<string, FolderChangeStatus>();
         _logger = logger;
         _configService = configService;
+        _currentConfig = new MachineConfiguration();
         
         // Subscribe to configuration changes
-        _configService.ConfigurationChanged += (s, e) => UpdateWatchers();
-        InitializeWatchers();
+        _configService.ConfigurationChanged += async (_, _) => 
+        {
+            _currentConfig = await _configService.LoadConfigurationAsync();
+            UpdateWatchers();
+        };
+
+        // Carrega configuração inicial
+        Task.Run(async () =>
+        {
+            try
+            {
+                _currentConfig = await _configService.LoadConfigurationAsync();
+                UpdateWatchers();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading initial configuration");
+            }
+        });
     }
 
     private void InitializeWatchers()
     {
-        var folders = _configService.GetMonitoredFolders();
+        var folders = _currentConfig.MonitoredFolders;
         foreach (var folder in folders)
         {
             if (!Directory.Exists(folder.Path)) continue;
@@ -121,7 +141,8 @@ public class FolderMonitor : IFolderMonitor, IDisposable
 
     public async Task<FolderStatus[]> CheckFoldersAsync(IEnumerable<FolderMonitorConfig> folders)
     {
-        var tasks = folders.Select(CheckFolderAsync);
+        var foldersToCheck = folders ?? _currentConfig.MonitoredFolders;
+        var tasks = foldersToCheck.Select(CheckFolderAsync);
         return await Task.WhenAll(tasks);
     }
 
