@@ -101,6 +101,8 @@ public partial class App : Application
                 services.AddSingleton<LogsViewModel>();
                 services.AddSingleton<NetworkViewModel>();
                 services.AddSingleton<FolderMonitorViewModel>();
+                services.AddSingleton<SchedulerExecutionService>();
+                services.AddHostedService(sp => sp.GetRequiredService<SchedulerExecutionService>());
             })
             .Build();
     }

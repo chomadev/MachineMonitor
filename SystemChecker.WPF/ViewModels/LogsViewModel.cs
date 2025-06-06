@@ -15,7 +15,7 @@ namespace SystemChecker.WPF.ViewModels
     {
         private readonly UiLoggerService _loggerService;
         private LogLevel _selectedLogLevel;
-        private ObservableCollection<LogEntry> _filteredLogs;
+        private ObservableCollection<LogEntryViewModel> _filteredLogs;
         private string _searchText = string.Empty;
         private readonly IDisposable _subscription;
 
@@ -23,7 +23,7 @@ namespace SystemChecker.WPF.ViewModels
         {
             _loggerService = loggerProvider.LoggerService;
             _selectedLogLevel = LogLevel.Information;
-            _filteredLogs = new ObservableCollection<LogEntry>();
+            _filteredLogs = new ObservableCollection<LogEntryViewModel>();
             
             ClearLogsCommand = new RelayCommand(ClearLogs);
 
@@ -50,13 +50,13 @@ namespace SystemChecker.WPF.ViewModels
                 var filtered = _loggerService.Logs.Where(l => l.Level >= SelectedLogLevel).ToList();
                 foreach (var log in filtered)
                 {
-                    FilteredLogs.Add(log);
+                    FilteredLogs.Add(new LogEntryViewModel(log));
                 }
                 OnPropertyChanged(nameof(FilteredLogs));
             });
         }
 
-        public ObservableCollection<LogEntry> FilteredLogs
+        public ObservableCollection<LogEntryViewModel> FilteredLogs
         {
             get => _filteredLogs;
             private set => SetField(ref _filteredLogs, value);
@@ -97,21 +97,18 @@ namespace SystemChecker.WPF.ViewModels
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
-                _loggerService.Logs.Add(entry);
+                // The UILoggerService already adds the log, so we just need to update the view model collection
+                var logViewModel = new LogEntryViewModel(entry);
                 if (string.IsNullOrWhiteSpace(SearchText) || 
-                    entry.Message.ToLower().Contains(SearchText.ToLower()))
+                    logViewModel.FullMessage.ToLower().Contains(SearchText.ToLower()))
                 {
-                    FilteredLogs.Add(entry);
+                    FilteredLogs.Add(logViewModel);
                 }
                 
                 // Keep only last 1000 entries
-                while (_loggerService.Logs.Count > 1000)
+                if (FilteredLogs.Count > 1000)
                 {
-                    _loggerService.Logs.RemoveAt(0);
-                    if (FilteredLogs.Count > 0)
-                    {
-                        FilteredLogs.RemoveAt(0);
-                    }
+                    FilteredLogs.RemoveAt(0);
                 }
             });
         }
@@ -132,27 +129,25 @@ namespace SystemChecker.WPF.ViewModels
         {
             FilteredLogs.Clear();
             
-            if (string.IsNullOrWhiteSpace(SearchText))
+            var logsToFilter = _loggerService.Logs
+                .Where(l => l.Level >= SelectedLogLevel)
+                .AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(SearchText))
             {
-                foreach (var log in _loggerService.Logs)
-                {
-                    FilteredLogs.Add(log);
-                }
-                return;
+                var searchTerms = SearchText.ToLower().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                logsToFilter = logsToFilter.Where(log =>
+                    searchTerms.All(term =>
+                        log.Message.ToLower().Contains(term) ||
+                        log.Level.ToString().ToLower().Contains(term) ||
+                        log.Timestamp.ToString("yyyy/MM/dd HH:mm:ss").Contains(term)));
             }
 
-            var searchTerms = SearchText.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            
-            foreach (var log in _loggerService.Logs)
+            foreach (var log in logsToFilter)
             {
-                if (searchTerms.All(term => 
-                    log.Message.ToLower().Contains(term) || 
-                    log.Level.ToString().ToLower().Contains(term) ||
-                    log.Timestamp.ToString("yyyy/MM/dd HH:mm:ss").Contains(term)))
-                {
-                    FilteredLogs.Add(log);
-                }
+                FilteredLogs.Add(new LogEntryViewModel(log));
             }
+            OnPropertyChanged(nameof(FilteredLogs));
         }
 
         public void Dispose()
